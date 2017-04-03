@@ -143,12 +143,12 @@ int OnInit()
          m_accountCcyFactors[i] = 1.0; }
       else if (StringCompare(StringSubstr(m_names[i,0],3,3),AccountCurrency(),false)==0) {
          if (StringCompare(StringSubstr(m_names[i,0],0,3),"XAU",false)==0) {
-            m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[i,0],MODE_BID); }
+            m_accountCcyFactors[i] = 1000 / MarketInfo(m_names[i,0],MODE_BID); }
          else {
             m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[i,0],MODE_BID); }
          }
       else if (StringCompare(StringSubstr(m_names[i,0],0,3),"WTI",false)==0) {
-            m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[i,0],MODE_BID); 
+            m_accountCcyFactors[i] = 100 / MarketInfo(m_names[i,0],MODE_BID); 
          }
       else {
          int k = getName(StringSubstr(m_names[i,0],0,3),"USD");
