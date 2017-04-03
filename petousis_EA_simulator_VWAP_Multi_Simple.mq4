@@ -674,12 +674,12 @@ if (b_lockIn) {
                   }
                }
             }
-            else if (m_ticketPositionPending[i]>0 && m_isPositionOpen[i]==false) {     // if pending order exists -> modify pending order
+            else if (m_ticketPositionPending[i]>0) {     // if pending order exists -> modify pending order
                res = OrderModify(m_ticketPositionPending[i],MarketInfo(m_names[i,0],MODE_ASK),SL,TP,0);
-               if (res) { Print("Order modified successfully"); }
-               else { Alert("Order modification failed with error #", GetLastError()); }
+               if (res) { Print("Order modified successfully:",m_names[i,0]); }
+               else { Alert(m_names[i,0],": Order modification failed with error #", GetLastError()); }
             }
-            else { Alert("ERROR"); }
+            else { Alert("ERROR - ",m_names[i,0]," System is sending a buy order, but it is neither opening nor modifying."); }
            }
            // Open Sell
          if (m_openSell[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0) 
@@ -707,12 +707,12 @@ if (b_lockIn) {
                   }
                }
             }
-            else if (m_ticketPositionPending[i]>0 && m_isPositionOpen[i]==false) {
+            else if (m_ticketPositionPending[i]>0) {
                res = OrderModify(m_ticketPositionPending[i],MarketInfo(m_names[i,0],MODE_BID),SL,TP,0);
-               if (res) { Print("Order modified successfully"); }
-               else { Alert("Order modification failed with error #", GetLastError()); }
+               if (res) { Print("Order modified successfully:",m_names[i,0]); }
+               else { Alert(m_names[i,0],": Order modification failed with error #", GetLastError()); }
                }
-            else { Alert("Error1"); }
+            else { Alert("ERROR - ",m_names[i,0]," System is sending a sell order, but it is neither opening nor modifying."); }
            }                                
         }
     }
