@@ -618,6 +618,7 @@ if (b_lockIn) {
     }
  }
  **/
+ /**
  if (b_orderSizeByLabouchere) {         
     for(int i=0; i<i_namesNumber; i++) {
       if ((m_openBuy[i]==true) || (m_openSell[i]==true))  {
@@ -641,7 +642,7 @@ if (b_lockIn) {
       }
     }
  }
-
+**/
  
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
@@ -658,20 +659,26 @@ if (b_lockIn) {
          // Open Buy
          if (m_openBuy[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0) 
            {                                       // criterion for opening Buy
-            RefreshRates();                        // Refresh rates
+            //RefreshRates();                        // Refresh rates
+            BID = MarketInfo(m_names[i,0],MODE_BID);
+            ASK = MarketInfo(m_names[i,0],MODE_ASK);
             if (i_mode == 3) {    // bollinger deviation for SL/TP
-                SL=MarketInfo(m_names[i,0],MODE_BID) - NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-                TP=MarketInfo(m_names[i,0],MODE_BID) + NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                SL=BID - NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=BID + NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                f_SLperc = (BID-SL)/BID;
+                m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+(SLinUSD provided in m_names)) / (f_SLperc*MarketInfo(m_names[i,0],MODE_LOTSIZE)*m_accountCcyFactors[i]),2));
             }
             else {
-                SL=MarketInfo(m_names[i,0],MODE_BID) - NormalizeDouble(StrToDouble(m_names[i,4])*MarketInfo(m_names[i,0],MODE_BID),(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-                TP=MarketInfo(m_names[i,0],MODE_BID) + NormalizeDouble(StrToDouble(m_names[i,5])*MarketInfo(m_names[i,0],MODE_BID),(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                f_weightedLosses = m_sequence[i][1]/(MarketInfo(m_names[i,0],MODE_LOTSIZE)*StrToDouble(m_names[i,3])*StrToDouble(m_names[i,4]));    // sum of losses over stoploss in USD
+                m_lots[i] = MathMax(0.01,NormalizeDouble(((1 - f_weightedLosses) * StrToDouble(m_names[i,3]) * m_accountCcyFactors[i]),2));            // add standard notional to weighted losses
+                SL=BID - NormalizeDouble(StrToDouble(m_names[i,4])*BID,(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=BID + NormalizeDouble(StrToDouble(m_names[i,5])*BID,(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
             }
             Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
-               ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],MarketInfo(m_names[i,0],MODE_ASK),slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Buy
+               ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],ASK,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Buy
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
                if (ticket < 0)  {                  // Success :)   
                   Alert("OrderSend failed with error #", GetLastError());
@@ -688,7 +695,7 @@ if (b_lockIn) {
                }
             }
             else if (m_ticketPositionPending[i]>0) {     // if pending order exists -> modify pending order
-               res = OrderModify(m_ticketPositionPending[i],MarketInfo(m_names[i,0],MODE_ASK),SL,TP,0);
+               res = OrderModify(m_ticketPositionPending[i],ASK,SL,TP,0);
                if (res) { Print("Order modified successfully:",m_names[i,0]); }
                else { Alert(m_names[i,0],": Order modification failed with error #", GetLastError()); }
             }
@@ -697,20 +704,26 @@ if (b_lockIn) {
            // Open Sell
          if (m_openSell[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0) 
            {                                       // criterion for opening Sell
-            RefreshRates();                        // Refresh rates
+            //RefreshRates();                        // Refresh rates
+            BID = MarketInfo(m_names[i,0],MODE_BID);
+            ASK = MarketInfo(m_names[i,0],MODE_ASK);
             if (i_mode == 3) {    // bollinger deviation for SL/TP
-                SL=MarketInfo(m_names[i,0],MODE_ASK) + NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-                TP=MarketInfo(m_names[i,0],MODE_ASK) - NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                SL=ASK + NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=ASK - NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                f_SLperc = (SL - ASK)/ASK;
+                m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+(SLinUSD provided in m_names)) / (f_SLperc*MarketInfo(m_names[i,0],MODE_LOTSIZE)*m_accountCcyFactors[i]),2));
             }
             else {
-                SL=MarketInfo(m_names[i,0],MODE_ASK) + NormalizeDouble(StrToDouble(m_names[i,4])*MarketInfo(m_names[i,0],MODE_ASK),(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-                TP=MarketInfo(m_names[i,0],MODE_ASK) - NormalizeDouble(StrToDouble(m_names[i,5])*MarketInfo(m_names[i,0],MODE_ASK),(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                f_weightedLosses = m_sequence[i][1]/(MarketInfo(m_names[i,0],MODE_LOTSIZE)*StrToDouble(m_names[i,3])*StrToDouble(m_names[i,4]));    // sum of losses over stoploss in USD
+                m_lots[i] = MathMax(0.01,NormalizeDouble(((1 - f_weightedLosses) * StrToDouble(m_names[i,3]) * m_accountCcyFactors[i]),2));            // add standard notional to weighted losses                
+                SL=ASK + NormalizeDouble(StrToDouble(m_names[i,4])*ASK,(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=ASK - NormalizeDouble(StrToDouble(m_names[i,5])*ASK,(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
             }
             Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
-               ticket=OrderSend(m_names[i,0],OP_SELLLIMIT,m_lots[i],MarketInfo(m_names[i,0],MODE_BID),slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Sell
+               ticket=OrderSend(m_names[i,0],OP_SELLLIMIT,m_lots[i],BID,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Sell
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
                if (ticket < 0)     {                 // Success :)
                   Alert("OrderSend failed with error #", GetLastError());
@@ -727,7 +740,7 @@ if (b_lockIn) {
                }
             }
             else if (m_ticketPositionPending[i]>0) {
-               res = OrderModify(m_ticketPositionPending[i],MarketInfo(m_names[i,0],MODE_BID),SL,TP,0);
+               res = OrderModify(m_ticketPositionPending[i],BID,SL,TP,0);
                if (res) { Print("Order modified successfully:",m_names[i,0]); }
                else { Alert(m_names[i,0],": Order modification failed with error #", GetLastError()); }
                }
