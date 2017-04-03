@@ -89,7 +89,8 @@ int OnInit()
   {
    
    // TIMER FREQUENCY - APPARENTLY NO SERVER CONTACT FOR MORE THAN 30SEC WILL CAUSE REAUTHENTICATION ADDING CONSIDERABLE DELAY, SO THEREFORE USE 15SEC INTERVAL
-   EventSetTimer(15);
+   if (timeFrame == 1) { EventSetTimer(10); }
+   else { EventSetTimer(15); }
    //Alert(Bars,"____",iBarShift(symb,timeFrame,TimeCurrent(),true));
    
    // READ IN THE FILE
