@@ -40,12 +40,12 @@ bool b_orderSizeByLabouchere = true;
 //bool b_safetyFactor = false;
 //bool b_writeToFile = false;
 bool b_sendEmail=false;
-input int i_stratMagicNumber = 18;
+input int i_stratMagicNumber = 21;
 // if 0,23 it trades nonstop
 int const i_hourStart = 0;       
 int const i_hourEnd = 23;
 int const i_hourEndFriday = 23;
-input double const f_deviationPerc = 0.5;
+input double const f_deviationPerc = 2.5;
 // sinewave
 //int sinewave_duration = 300;   
 //int sinewave_superSmootherMemory = 80;
@@ -271,6 +271,7 @@ void OnTimer() //void OnTick()
    int m_ticketPositionPending[];
    double m_orderLots[];
    double m_VWAP[];
+   double m_bollingerDeviation[];
    int m_orderTickets[];
    string s_comment,s_orderSymbol;
    
@@ -284,6 +285,7 @@ void OnTimer() //void OnTick()
    ArrayResize(m_ticketPositionPending,i_namesNumber,0);
    ArrayResize(m_orderLots,i_namesNumber,0);
    ArrayResize(m_VWAP,i_namesNumber,0);
+   ArrayResize(m_bollingerDeviation,i_namesNumber,0);
    ArrayResize(m_orderTickets,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
    ArrayInitialize(m_openBuy,false);
@@ -294,6 +296,7 @@ void OnTimer() //void OnTick()
    ArrayInitialize(m_ticketPositionPending,-1);
    ArrayInitialize(m_orderLots,0);
    ArrayInitialize(m_VWAP,0);
+   ArrayInitialize(m_bollingerDeviation,0);
    ArrayInitialize(m_orderTickets,0);
    count++;
    isNewBar=isNewBar();
@@ -332,10 +335,14 @@ void OnTimer() //void OnTick()
          if (temp_T1 > 0.001) {              // previous
             if (temp_T1 > m_VWAP[i]) {
                m_signal[i] = 1;
+               // correct this line
+               m_bollingerDeviation[i] = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1) - iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
                //Alert("Buy signal for ",symb," at ",Time[0]);
             }
             else if (temp_T1 < m_VWAP[i]) {
                m_signal[i] = -1;
+               //correct this line
+               m_bollingerDeviation[i] = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1) - iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
                //Alert("Sell signal for ",symb," at ",Time[0]);
             }
             else {
@@ -652,8 +659,14 @@ if (b_lockIn) {
          if (m_openBuy[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0) 
            {                                       // criterion for opening Buy
             RefreshRates();                        // Refresh rates
-            SL=MarketInfo(m_names[i,0],MODE_BID) - NormalizeDouble(StrToDouble(m_names[i,4])*MarketInfo(m_names[i,0],MODE_BID),(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-            TP=MarketInfo(m_names[i,0],MODE_BID) + NormalizeDouble(StrToDouble(m_names[i,5])*MarketInfo(m_names[i,0],MODE_BID),(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+            if (i_mode == 3) {    // bollinger deviation for SL/TP
+                SL=MarketInfo(m_names[i,0],MODE_BID) - NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=MarketInfo(m_names[i,0],MODE_BID) + NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+            }
+            else {
+                SL=MarketInfo(m_names[i,0],MODE_BID) - NormalizeDouble(StrToDouble(m_names[i,4])*MarketInfo(m_names[i,0],MODE_BID),(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=MarketInfo(m_names[i,0],MODE_BID) + NormalizeDouble(StrToDouble(m_names[i,5])*MarketInfo(m_names[i,0],MODE_BID),(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+            }
             Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
@@ -685,8 +698,14 @@ if (b_lockIn) {
          if (m_openSell[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0) 
            {                                       // criterion for opening Sell
             RefreshRates();                        // Refresh rates
-            SL=MarketInfo(m_names[i,0],MODE_ASK) + NormalizeDouble(StrToDouble(m_names[i,4])*MarketInfo(m_names[i,0],MODE_ASK),(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-            TP=MarketInfo(m_names[i,0],MODE_ASK) - NormalizeDouble(StrToDouble(m_names[i,5])*MarketInfo(m_names[i,0],MODE_ASK),(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+            if (i_mode == 3) {    // bollinger deviation for SL/TP
+                SL=MarketInfo(m_names[i,0],MODE_ASK) + NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=MarketInfo(m_names[i,0],MODE_ASK) - NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+            }
+            else {
+                SL=MarketInfo(m_names[i,0],MODE_ASK) + NormalizeDouble(StrToDouble(m_names[i,4])*MarketInfo(m_names[i,0],MODE_ASK),(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=MarketInfo(m_names[i,0],MODE_ASK) - NormalizeDouble(StrToDouble(m_names[i,5])*MarketInfo(m_names[i,0],MODE_ASK),(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+            }
             Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
