@@ -139,6 +139,16 @@ int OnInit()
          m_myMagicNumber[i] = getMagicNumber(m_names[i,0],i_stratMagicNumber);
       }
       // initialize m_accountCcyFactors
+      /**
+      The implementation below is valid when our SL is given as a %. When it is given as a percentage, 1% is directly in dollars for  
+      USDXXX currencies ie 1% move in USDJPY is exactly USD1000. If XXXUSD then 1% move is XXX1000 ie USD1000*XXXUSD.
+      Now if our SL is given in pips, then it works the other way round. For USDXXX, 1pip is USD1*USDXXX so the formula is  
+      Lots = USDXXX * SL(USD) / SL(pips)
+      For USDJPY 1pip is JPY100 so the formula becomes Lots = USDXXX * SL(USD) / SL(pips) / 100
+      For XXXUSD 1pip is USD1 so the formula is Lots = SL(USD) / SL(pips)
+      For XAUUSD 1pip is USD1 so the formula is Lots = SL(USD) / SL(pips)
+      For WTI 1pip is USD10 so the formula is Lots = SL(USD) / SL(pips) / 10
+      **/
       if (StringCompare(StringSubstr(m_names[i,0],0,3),AccountCurrency(),false)==0) {
          m_accountCcyFactors[i] = 1.0; }
       else if (StringCompare(StringSubstr(m_names[i,0],3,3),AccountCurrency(),false)==0) {
