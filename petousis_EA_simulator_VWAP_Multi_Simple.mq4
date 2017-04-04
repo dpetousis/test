@@ -29,8 +29,8 @@
 
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches
-input bool b_long = true;
-input bool b_short = true;
+bool b_long = true;
+bool b_short = true;
 input bool b_VWAP = true;
 input bool b_noNewSequence = false;
 input string s_inputFileName = "TF_DEMO_H1_100_5_BOLLINGER.txt"; 
@@ -51,7 +51,7 @@ input double const f_deviationPerc = 2.5;
 //int sinewave_superSmootherMemory = 80;
 // filter 
 //input int filter_cutoff = 10;
-int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
+input int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
 bool filter_supersmoother = true;
 // trading system safety factor
 //int i_windowLength = 20;
@@ -150,17 +150,27 @@ int OnInit()
       For WTI 1pip is USD10 so the formula is Lots = SL(USD) / SL(pips) / 10
       **/
       if (StringCompare(StringSubstr(m_names[i,0],0,3),AccountCurrency(),false)==0) {
-         m_accountCcyFactors[i] = 1.0; }
+         if (i_mode==3) { 
+            if (StringCompare(StringSubstr(m_names[i,0],3,3),"JPY",false)==0) {
+                m_accountCcyFactors[i] = MarketInfo(m_names[i,0],MODE_BID) / 100; }
+            else { m_accountCcyFactors[i] = MarketInfo(m_names[i,0],MODE_BID); }
+         }
+         else { m_accountCcyFactors[i] = 1.0; } 
+      }
       else if (StringCompare(StringSubstr(m_names[i,0],3,3),AccountCurrency(),false)==0) {
-         if (StringCompare(StringSubstr(m_names[i,0],0,3),"XAU",false)==0) {
-            m_accountCcyFactors[i] = 1000 / MarketInfo(m_names[i,0],MODE_BID); }
+         if (i_mode==3) { m_accountCcyFactors[i] = 1.0; }
          else {
-            m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[i,0],MODE_BID); }
+           if (StringCompare(StringSubstr(m_names[i,0],0,3),"XAU",false)==0) {
+              m_accountCcyFactors[i] = 1000 / MarketInfo(m_names[i,0],MODE_BID); }
+           else {
+              m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[i,0],MODE_BID); }
+           }
          }
       else if (StringCompare(StringSubstr(m_names[i,0],0,3),"WTI",false)==0) {
-            m_accountCcyFactors[i] = 100 / MarketInfo(m_names[i,0],MODE_BID); 
+            if (i_mode==3) { m_accountCcyFactors[i] = 1.0 / 10; }
+            else { m_accountCcyFactors[i] = 100 / MarketInfo(m_names[i,0],MODE_BID); }
          }
-      else {
+      else { // need to review this for bollinger !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          int k = getName(StringSubstr(m_names[i,0],0,3),"USD");
          if (k>=0) {
             if (StringFind(m_names[k,0],"USD")==0) {
@@ -350,13 +360,17 @@ void OnTimer() //void OnTick()
             if (temp_T1 > m_VWAP[i]) {
                m_signal[i] = 1;
                // correct this line
-               m_bollingerDeviation[i] = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1) - iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+               upper = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+               central =  iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+               m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i][0],MODE_POINT)) * (upper-central),0);
                //Alert("Buy signal for ",symb," at ",Time[0]);
             }
             else if (temp_T1 < m_VWAP[i]) {
                m_signal[i] = -1;
                //correct this line
-               m_bollingerDeviation[i] = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1) - iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+               lower = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+               central =  iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,6]),StrToInteger(m_names[i,7]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+               m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i][0],MODE_POINT)) * (central-lower),0);
                //Alert("Sell signal for ",symb," at ",Time[0]);
             }
             else {
@@ -677,16 +691,15 @@ if (b_lockIn) {
             BID = MarketInfo(m_names[i,0],MODE_BID);
             ASK = MarketInfo(m_names[i,0],MODE_ASK);
             if (i_mode == 3) {    // bollinger deviation for SL/TP
-                SL=BID - NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-                TP=BID + NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
-                f_SLperc = (BID-SL)/BID;
-                m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+(SLinUSD provided in m_names)) / (f_SLperc*MarketInfo(m_names[i,0],MODE_LOTSIZE)*m_accountCcyFactors[i]),2));
+                SL=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i,0],MODE_POINT),MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i,0],MODE_POINT),MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+(SLinUSD provided in m_names)) * m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
             }
             else {
                 f_weightedLosses = m_sequence[i][1]/(MarketInfo(m_names[i,0],MODE_LOTSIZE)*StrToDouble(m_names[i,3])*StrToDouble(m_names[i,4]));    // sum of losses over stoploss in USD
                 m_lots[i] = MathMax(0.01,NormalizeDouble(((1 - f_weightedLosses) * StrToDouble(m_names[i,3]) * m_accountCcyFactors[i]),2));            // add standard notional to weighted losses
-                SL=BID - NormalizeDouble(StrToDouble(m_names[i,4])*BID,(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-                TP=BID + NormalizeDouble(StrToDouble(m_names[i,5])*BID,(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                SL=BID - NormalizeDouble(StrToDouble(m_names[i,4])*BID,MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=BID + NormalizeDouble(StrToDouble(m_names[i,5])*BID,MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
             }
             Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
@@ -722,16 +735,15 @@ if (b_lockIn) {
             BID = MarketInfo(m_names[i,0],MODE_BID);
             ASK = MarketInfo(m_names[i,0],MODE_ASK);
             if (i_mode == 3) {    // bollinger deviation for SL/TP
-                SL=ASK + NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-                TP=ASK - NormalizeDouble(m_bollingerDeviation[i],(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
-                f_SLperc = (SL - ASK)/ASK;
-                m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+(SLinUSD provided in m_names)) / (f_SLperc*MarketInfo(m_names[i,0],MODE_LOTSIZE)*m_accountCcyFactors[i]),2));
+                SL=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i,0],MODE_POINT),MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i,0],MODE_POINT),MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+(SLinUSD provided in m_names)) * m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
             }
             else {
                 f_weightedLosses = m_sequence[i][1]/(MarketInfo(m_names[i,0],MODE_LOTSIZE)*StrToDouble(m_names[i,3])*StrToDouble(m_names[i,4]));    // sum of losses over stoploss in USD
                 m_lots[i] = MathMax(0.01,NormalizeDouble(((1 - f_weightedLosses) * StrToDouble(m_names[i,3]) * m_accountCcyFactors[i]),2));            // add standard notional to weighted losses                
-                SL=ASK + NormalizeDouble(StrToDouble(m_names[i,4])*ASK,(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
-                TP=ASK - NormalizeDouble(StrToDouble(m_names[i,5])*ASK,(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
+                SL=ASK + NormalizeDouble(StrToDouble(m_names[i,4])*ASK,MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
+                TP=ASK - NormalizeDouble(StrToDouble(m_names[i,5])*ASK,MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
             }
             Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {
