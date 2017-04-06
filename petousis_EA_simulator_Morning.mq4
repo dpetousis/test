@@ -46,7 +46,7 @@ int const slippage =10;           // in points
 int const timeFrame=Period();        
 bool Work = true;             //EA will work
 string const symb =Symbol();
-int m_myMagicNumber[NAMESNUMBERMAX];  // Magic Numbers
+int m_myMagicNumber[NAMESNUMBERMAX][2];  // Magic Numbers
 double m_lots[NAMESNUMBERMAX];
 double m_accountCcyFactors[NAMESNUMBERMAX];
 string m_names[NAMESNUMBERMAX][8];
@@ -109,12 +109,8 @@ int OnInit()
       }
       else { PrintFormat("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
-      if (i_stratMagicNumber<0) {
-         m_myMagicNumber[i] = -1 * getMagicNumber(m_names[i,0],MathAbs(i_stratMagicNumber));
-      }
-      else {
-         m_myMagicNumber[i] = getMagicNumber(m_names[i,0],i_stratMagicNumber);
-      }
+      m_myMagicNumber[i,0] = getMagicNumber(m_names[i,0],i_stratMagicNumber);
+      m_myMagicNumber[i,1] = -1 * getMagicNumber(m_names[i,0],i_stratMagicNumber);
       // initialize m_accountCcyFactors
       /**
       If our SL/TP is given in pips, then: For 1lot USDXXX, 1pip is USD1/USDXXX so the formula is  
@@ -228,11 +224,9 @@ void OnTimer() //void OnTick()
    f_avgWin = 0, f_avgLoss = 0,
    f_orderOpenPrice,f_orderStopLoss,
    f_filterPrev = 0,f_filter = 0,temp_T1=0,f_VWAP=0;
-   int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending 2:modify pending
+   int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending
    bool m_openBuy[];
    bool m_openSell[];
-   bool m_modifyBuy[];
-   bool m_modifySell[];
    bool m_closeBuy[];
    bool m_closeSell[];
    bool m_isPositionOpen[];
@@ -246,8 +240,6 @@ void OnTimer() //void OnTick()
    ArrayResize(m_signal,i_namesNumber,0);
    ArrayResize(m_openBuy,i_namesNumber,0);
    ArrayResize(m_openSell,i_namesNumber,0);
-   ArrayResize(m_modifyBuy,i_namesNumber,0);
-   ArrayResize(m_modifySell,i_namesNumber,0);
    ArrayResize(m_closeBuy,i_namesNumber,0);
    ArrayResize(m_closeSell,i_namesNumber,0);
    ArrayResize(m_isPositionOpen,i_namesNumber,0);
@@ -257,8 +249,6 @@ void OnTimer() //void OnTick()
    ArrayInitialize(m_signal,0);
    ArrayInitialize(m_openBuy,false);
    ArrayInitialize(m_openSell,false);
-   ArrayInitialize(m_modifyBuy,false);
-   ArrayInitialize(m_modifySell,false);
    ArrayInitialize(m_closeBuy,false);
    ArrayInitialize(m_closeSell,false);
    ArrayInitialize(m_isPositionOpen,false);
@@ -314,10 +304,10 @@ void OnTimer() //void OnTick()
 		 }
 		 else if (m_state[i,0]==0 && m_state[i,1]==1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
 			m_signal[i,0] = 1;		// open pending
-			m_signal[i,1] = 2;		// modify->open new pending 
+			m_signal[i,1] = 1;		// delete->open new pending 
 		 }
 		 else if (m_state[i,0]==1 && m_state[i,1]==0) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
-			m_signal[i,0] = 2;		// modify->new open pending
+			m_signal[i,0] = 1;		// delete->new open pending
 			m_signal[i,1] = 1;		// open pending
 		 }
 		 else if ((m_state[i,0]==2 && m_state[i,1]==0) || (m_state[i,0]==0 && m_state[i,1]==2)) {	// something wrong
@@ -353,17 +343,11 @@ void OnTimer() //void OnTick()
          if ((m_signal[i,0]==-1) && StringCompare(m_names[i,1],"Y",false)==0) { 		// close trade
             m_closeBuy[i] = true; 
          }
-		 else if ((m_signal[i,0]==2) && StringCompare(m_names[i,1],"Y",false)==0) { 	// close trade in order to open new pending
-            m_closeBuy[i] = true; 
-         }
          else {
             m_closeBuy[i] = false;
          }
 		 // SELL
          if ((m_signal[i,1]==-1) && StringCompare(m_names[i,1],"Y",false)==0) { 
-            m_closeSell[i] = true; 
-         }
-		 else if ((m_signal[i,1]==2) && StringCompare(m_names[i,1],"Y",false)==0) { 	// close trade in order to open new pending
             m_closeSell[i] = true; 
          }
          else {
@@ -375,7 +359,7 @@ void OnTimer() //void OnTick()
 // CLOSING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	for(int i=0; i<i_namesNumber; i++) {
 		if (m_closeBuy[i]==true) {
-			i_ticket = ticketPositionBuy(m_myMagicNumber[i],m_names[i,0]);
+			i_ticket = ticketPositionBuy(m_myMagicNumber[i,0],m_names[i,0]);
 			orderType = OrderType();
 			if (orderType==OP_BUY) {
 				success = OrderClose(i_ticket,OrderLots(),MarketInfo(m_names[i,0],MODE_BID),100);
@@ -386,7 +370,7 @@ void OnTimer() //void OnTick()
 			else { Alert("Order #",i_ticket," failed to close with error #", GetLastError()); }
 		}
 		if (m_closeSell[i]==true) {
-			i_ticket = ticketPositionSell(m_myMagicNumber[i],m_names[i,0]);
+			i_ticket = ticketPositionSell(m_myMagicNumber[i,1],m_names[i,0]);
 			orderType = OrderType();
 			if (orderType==OP_SELL) {
 				success = OrderClose(i_ticket,OrderLots(),MarketInfo(m_names[i,0],MODE_ASK),100);
@@ -398,6 +382,7 @@ void OnTimer() //void OnTick()
 		}
     }
 
+/**
 // CHECK THAT ORDERS HAVE NOT BEEN CLOSED MANUALLY OR BY SL SINCE LAST TICK /////////////////////////////////////////////////////////////////
    new_ordersHistoryTotal = OrdersHistoryTotal();
    if (new_ordersHistoryTotal - i_ordersHistoryTotal > 0) {         // there is at least one new closed trade
@@ -429,7 +414,7 @@ void OnTimer() //void OnTick()
    }
    i_ordersHistoryTotal = new_ordersHistoryTotal;        // update
             
-   
+**/
    
 // OPENING/MODIFY TRADING CRITERIA  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    // no trades on sundays, late and early in the day, earlier stop on fridays
@@ -439,23 +424,15 @@ void OnTimer() //void OnTick()
          if ((m_signal[i,0]==1) && StringCompare(m_names[i,1],"Y",false)==0) { 
             m_openBuy[i] = true; 
          }
-         else if (m_signal[i,0]==2 && StringCompare(m_names[i,1],"Y",false)==0) { 
-            m_modifyBuy[i] = true; 
-         }
          else {
             m_openBuy[i] = false;
-            m_modifyBuy[i] = false;
          }
 		 // SELL
          if ((m_signal[i,1]==1) && StringCompare(m_names[i,1],"Y",false)==0) { 
             m_openSell[i] = true; 
          }
-         else if (m_signal[i,1]==2 && StringCompare(m_names[i,1],"Y",false)==0) { 
-            m_modifySell[i] = true; 
-         }
          else {
             m_openSell[i] = false;
-            m_modifySell[i] = false;
          }
          
       }
@@ -492,17 +469,16 @@ void OnTimer() //void OnTick()
 	// Open Buy
 	if (m_openBuy[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0) {                        // criterion for opening Buy
 		// delete existing pending order if there is one
-		ticket = ticketPositionPendingBuy(m_myMagicNumber[i],m_names[i,0]);
+		ticket = ticketPositionPendingBuy(m_myMagicNumber[i,0],m_names[i,0]);
 		if (ticket>0) {
 			res = OrderDelete(ticket);
 			if (res) { Print("Pending Order deleted successfully"); }
 			else { Alert("Order deletion failed with error #", GetLastError()); }
 		}
 		// open the new pending order
-		//RefreshRates();                        // Refresh rates
 		Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
-		s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(m_sequence[i]+1,0));
-		ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_myMagicNumber[i]); //Opening Buy
+		s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i,0]),"_",DoubleToStr(m_sequence[i]+1,0));
+		ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_myMagicNumber[i,0]); //Opening Buy
 		Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
 		if (ticket < 0)  {                  // Success :)   
 			Alert("OrderSend ",m_names[i,0]," failed with error #", GetLastError());
@@ -515,17 +491,16 @@ void OnTimer() //void OnTick()
 	   // Open Sell
 	 if (m_openSell[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0)  {                      // criterion for opening Sell
 		// delete existing pending order if there is one
-		ticket = ticketPositionPendingSell(m_myMagicNumber[i],m_names[i,0]);
+		ticket = ticketPositionPendingSell(m_myMagicNumber[i,1],m_names[i,0]);
 		if (ticket>0) {
 			res = OrderDelete(ticket);
 			if (res) { Print("Pending Order deleted successfully"); }
 			else { Alert("Order deletion failed with error #", GetLastError()); }
 		}
 		// open the new pending order
-		// RefreshRates();                        // Refresh rates
 		Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
-	   	s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(m_sequence[i]+1,0));
-	   	ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_myMagicNumber[i]); //Opening Buy
+	   	s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i,1]),"_",DoubleToStr(m_sequence[i]+1,0));
+	   	ticket=OrderSend(m_names[i,0],OP_SELLLIMIT,m_lots[i],m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_myMagicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
 		if (ticket < 0)     {                 // Success :)
 		  Alert("OrderSend ",m_names[i,0]," failed with error #", GetLastError());
@@ -712,7 +687,7 @@ void OnTimer() //void OnTick()
   {
    for(int i=0; i<i_namesNumber; i++) {
       if (StringCompare(symbol,m_names[i][0],false) == 0) { 
-         return stratMagicNumber*100 + (i+1); 
+         return MathAbs(stratMagicNumber)*100 + (i+1); 
       }
    }
    return 0;
