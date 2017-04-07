@@ -41,7 +41,7 @@ bool b_orderSizeByLabouchere = true;
 //bool b_safetyFactor = false;
 //bool b_writeToFile = false;
 bool b_sendEmail=false;
-input int i_stratMagicNumber = 21;
+input int i_stratMagicNumber = 21;    // Always positive
 // if 0,23 it trades nonstop
 int const i_hourStart = 0;       
 int const i_hourEnd = 23;
@@ -133,12 +133,7 @@ int OnInit()
       }
       else { PrintFormat("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
-      if (i_stratMagicNumber<0) {
-         m_myMagicNumber[i] = -1 * getMagicNumber(m_names[i,0],MathAbs(i_stratMagicNumber));
-      }
-      else {
-         m_myMagicNumber[i] = getMagicNumber(m_names[i,0],i_stratMagicNumber);
-      }
+      m_myMagicNumber[i] = getMagicNumber(m_names[i,0],i_stratMagicNumber);
       // initialize m_accountCcyFactors
       /**
       If our SL/TP is given in pips, then: For 1lot USDXXX, 1pip is USD1/USDXXX so the formula is  
