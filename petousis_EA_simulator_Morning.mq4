@@ -267,7 +267,24 @@ void OnTimer() //void OnTick()
       Alert("Critical error. EA doesn't work.");
       return;                                   // Exit start()
      }
-      
+
+// UPDATE STATE
+for(int i=0; i<i_namesNumber; i++) {
+	// buy
+	ticketPending = ticketPositionPendingBuy(m_magicNumber[i],m_names[i,0]);
+	ticketOpen = ticketPositionOpenBuy(m_magicNumber[i],m_names[i,0]);
+	if (ticketPending>0 && ticketOpen>0) { Alert(m_names[i,0],": ERROR - We have two trades in same direction."); }
+	else if (ticketPending>0 && ticketOpen<0) { m_state[i,0] = 1; }
+	else if (ticketPending<0 && ticketOpen>0) { m_state[i,0] = 2; }
+	else { m_state[i,0] = 0; }
+	// sell
+	ticketPending = ticketPositionPendingSell(m_magicNumber[i],m_names[i,0]);
+	ticketOpen = ticketPositionOpenSell(m_magicNumber[i],m_names[i,0]);
+	if (ticketPending>0 && ticketOpen>0) { Alert(m_names[i,0],": ERROR - We have two trades in same direction."); }
+	else if (ticketPending>0 && ticketOpen<0) { m_state[i,1] = 1; }
+	else if (ticketPending<0 && ticketOpen>0) { m_state[i,1] = 2; }
+	else { m_state[i,1] = 0; }
+}
 
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    //if (isNewBar || (count == 1)) {
@@ -581,6 +598,30 @@ void OnTimer() //void OnTick()
    for(int i=0; i<OrdersTotal(); i++)
      {
       if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol && (OrderType()==OP_SELLLIMIT || OrderType()==OP_SELLSTOP))
+        {
+         return OrderTicket();
+        }
+     }
+   return -1;
+  }
+  
+  int ticketPositionOpenBuy(int myMagicNumber, string symbol)
+  {
+   for(int i=0; i<OrdersTotal(); i++)
+     {
+      if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol && (OrderType()==OP_BUY))
+        {
+         return OrderTicket();
+        }
+     }
+   return -1;
+  }
+  
+  int ticketPositionOpenSell(int myMagicNumber, string symbol)
+  {
+   for(int i=0; i<OrdersTotal(); i++)
+     {
+      if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol && (OrderType()==OP_SELL))
         {
          return OrderTicket();
         }
