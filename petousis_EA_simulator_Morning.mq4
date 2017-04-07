@@ -32,7 +32,7 @@
 input string s_inputFileName = "TF_DEMO_M30_Morning.txt"; 
 bool b_orderSizeByLabouchere = true;
 bool b_sendEmail=false;
-input int i_stratMagicNumber = 90;
+input int i_stratMagicNumber = 90;		// Always positive
 // if 0,23 it trades nonstop
 int const i_hourStart = 8;       
 int const i_hourEnd = 23;
@@ -110,7 +110,7 @@ int OnInit()
       else { PrintFormat("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
       m_myMagicNumber[i,0] = getMagicNumber(m_names[i,0],i_stratMagicNumber);
-      m_myMagicNumber[i,1] = -1 * getMagicNumber(m_names[i,0],i_stratMagicNumber);
+      m_myMagicNumber[i,1] = -1 * m_myMagicNumber[i,0];
       // initialize m_accountCcyFactors
       /**
       If our SL/TP is given in pips, then: For 1lot USDXXX, 1pip is USD1/USDXXX so the formula is  
@@ -268,25 +268,34 @@ void OnTimer() //void OnTick()
       return;                                   // Exit start()
      }
 
-// UPDATE STATE
+// ORDERS ACCOUNTING
 for(int i=0; i<i_namesNumber; i++) {
-	// buy
-	ticketPending = ticketPositionPendingBuy(m_magicNumber[i],m_names[i,0]);
-	ticketOpen = ticketPositionOpenBuy(m_magicNumber[i],m_names[i,0]);
-	if (ticketPending>0 && ticketOpen>0) { Alert(m_names[i,0],": ERROR - We have two trades in same direction."); }
-	else if (ticketPending>0 && ticketOpen<0) { m_state[i,0] = 1; }
-	else if (ticketPending<0 && ticketOpen>0) { m_state[i,0] = 2; }
-	else { m_state[i,0] = 0; }
-	// sell
-	ticketPending = ticketPositionPendingSell(m_magicNumber[i],m_names[i,0]);
-	ticketOpen = ticketPositionOpenSell(m_magicNumber[i],m_names[i,0]);
-	if (ticketPending>0 && ticketOpen>0) { Alert(m_names[i,0],": ERROR - We have two trades in same direction."); }
-	else if (ticketPending>0 && ticketOpen<0) { m_state[i,1] = 1; }
-	else if (ticketPending<0 && ticketOpen>0) { m_state[i,1] = 2; }
-	else { m_state[i,1] = 0; }
-	// checks
-	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i,0],": The trades have different sequence number."); }
+	if (~m_doneForTheDay[i]) {
 	
+		// if there is already a closed trade today and we hit TP -> done for the day
+		res = readLastTradeComment(m_magicNumber[i,0],m_names[i,0],true,output);
+		if (res && output[0]>0) { m_doneForTheDay[i] = true; }
+		res = readLastTradeComment(m_magicNumber[i,1],m_names[i,0],true,output);
+		if (res && output[0]>0) { m_doneForTheDay[i] = true; }
+
+		// update states - buy
+		ticketPending = ticketPositionPendingBuy(m_magicNumber[i,0],m_names[i,0]);
+		ticketOpen = ticketPositionOpenBuy(m_magicNumber[i,0],m_names[i,0]);
+		if (ticketPending>0 && ticketOpen>0) { Alert(m_names[i,0],": ERROR - We have two trades in same direction."); }
+		else if (ticketPending>0 && ticketOpen<0) { m_state[i,0] = 1; }
+		else if (ticketPending<0 && ticketOpen>0) { m_state[i,0] = 2; }
+		else { m_state[i,0] = 0; }
+		// update states - sell
+		ticketPending = ticketPositionPendingSell(m_magicNumber[i,1],m_names[i,0]);
+		ticketOpen = ticketPositionOpenSell(m_magicNumber[i,1],m_names[i,0]);
+		if (ticketPending>0 && ticketOpen>0) { Alert(m_names[i,0],": ERROR - We have two trades in same direction."); }
+		else if (ticketPending>0 && ticketOpen<0) { m_state[i,1] = 1; }
+		else if (ticketPending<0 && ticketOpen>0) { m_state[i,1] = 2; }
+		else { m_state[i,1] = 0; }
+
+		// checks
+		if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i,0],": The trades have different sequence number."); }
+	}
 }
 
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,10 +362,6 @@ for(int i=0; i<i_namesNumber; i++) {
 	}
       }
 
-// ORDERS ACCOUNTING ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	for(int i=0; i<i_namesNumber; i++) {
-		
-	}
 
 // CLOSING TRADE CRITERIA  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
@@ -735,13 +740,13 @@ for(int i=0; i<i_namesNumber; i++) {
   {
    for(int i=0; i<i_namesNumber; i++) {
       if (StringCompare(symbol,m_names[i][0],false) == 0) { 
-         return MathAbs(stratMagicNumber)*100 + (i+1); 
+         return stratMagicNumber*100000 + DayOfYear()*100 + (i+1); 
       }
    }
    return 0;
   }
   
-  bool readLastTradeSubComment(int myMagicNumber,string symbol,bool b_searchHistory, double &output[])
+  bool readLastTradeComment(int myMagicNumber,string symbol,bool b_searchHistory, double &output[])
   {
    string result[];
    ushort u_sep=StringGetCharacter("_",0);
@@ -751,17 +756,13 @@ for(int i=0; i<i_namesNumber; i++) {
       for(int i=OrdersHistoryTotal()-1; i>=0; i--) {
          if(OrderSelect(i,SELECT_BY_POS,MODE_HISTORY) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol) {
             temp = StringSplit(OrderComment(),u_sep,result);
-            if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); break; }
-            output[0] = StrToDouble(result[1]); //vwap
-            output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
-            output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false);
-            temp = StringFind(result[3],"[");
+            if (ArraySize(result)<2) { PrintFormat("Comment format is wrong for ",symbol); break; }
+            output[0] = OrderProfit() + OrderCommission() + OrderSwap();   // profit
+            temp = StringFind(result[1],"[");
             if (temp<0) {
-               output[2] = StrToDouble(result[3]); } // trade number
-            else if (temp==1) {
-               output[2] = StrToDouble(StringSubstr(result[3],0,1)); }
-            else if (temp==2) {
-               output[2] = StrToDouble(StringSubstr(result[3],0,2)); }
+               output[1] = StrToDouble(result[1]); } // sequence number
+            else if (temp>=0) {
+               output[1] = StrToDouble(StringSubstr(result[1],0,temp)); }
             return true;
          }
          else  {
@@ -773,11 +774,9 @@ for(int i=0; i<i_namesNumber; i++) {
       for(int i=OrdersTotal()-1; i>=0; i--) {
          if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol) {
             temp = StringSplit(OrderComment(),u_sep,result);
-            if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for %s",symbol); break; }
-            output[0] = StrToDouble(result[1]); //vwap
-            output[1] = StrToDouble(result[2]);   // cum loss
-            output[2] = StrToDouble(result[3]); // trade number
-            output[3] = 0.0;
+            if (ArraySize(result)<2) { PrintFormat("Comment format is wrong for %s",symbol); break; }
+            output[0] = 0.0; //profit
+            output[1] = StrToDouble(result[1]);   // sequence number
             return true;
          }
          else  {
