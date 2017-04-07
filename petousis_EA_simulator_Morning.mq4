@@ -284,6 +284,9 @@ for(int i=0; i<i_namesNumber; i++) {
 	else if (ticketPending>0 && ticketOpen<0) { m_state[i,1] = 1; }
 	else if (ticketPending<0 && ticketOpen>0) { m_state[i,1] = 2; }
 	else { m_state[i,1] = 0; }
+	// checks
+	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i,0],": The trades have different sequence number."); }
+	
 }
 
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -307,6 +310,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		 //m_averageCandle[i,0] = f_average / (double)i_SRInHours;
 		// Then calculate all trade components for the day
 		f_SR = m_SR[i,1] - m_SR[i,0]; 
+		f_pips = NormalizeDouble((1/MarketInfo(m_names[i][0],MODE_POINT)) * f_SR,0);
 		m_openPrice[i,0] = NormalizeDouble(MarketInfo(m_names[i,0],MODE_ASK) + f_SR,MODE_DIGITS);
 		m_openPrice[i,1] = NormalizeDouble(MarketInfo(m_names[i,0],MODE_BID) - f_SR,MODE_DIGITS);
 		m_stopLoss[i,0] = NormalizeDouble(m_openPrice[i,0] - f_SR,MODE_DIGITS);
@@ -495,7 +499,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 		// open the new pending order
 		Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
-		m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,cash]) * m_accountCcyFactors[i] * (1/m_pips) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,0])),2);
+		m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,cash]) * m_accountCcyFactors[i] * (1/f_pips) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,0])),2);
 		s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0]+1,0));
 		ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_myMagicNumber[i,0]); //Opening Buy
 		Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
@@ -518,7 +522,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 		// open the new pending order
 		Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
-	   	m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,cash]) * m_accountCcyFactors[i] * (1/m_pips) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
+	   	m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,cash]) * m_accountCcyFactors[i] * (1/f_pips) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
 		s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1]+1,0));
 	   	ticket=OrderSend(m_names[i,0],OP_SELLLIMIT,m_lots[i],m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_myMagicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
