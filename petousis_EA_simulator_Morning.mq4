@@ -52,7 +52,7 @@ double m_accountCcyFactors[NAMESNUMBERMAX];
 string m_names[NAMESNUMBERMAX][8];
 int m_state[NAMESNUMBERMAX,2];		// 0:no buy/sell trade 1:pending 2:open
 bool m_doneForTheDay[NAMESNUMBERMAX];
-int m_sequence[NAMESNUMBERMAX];
+int m_sequence[NAMESNUMBERMAX][2];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -456,6 +456,7 @@ for(int i=0; i<i_namesNumber; i++) {
    //}
  
  // ORDER SIZE WARPING //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ /**
  if (b_orderSizeByLabouchere) {         
     for(int i=0; i<i_namesNumber; i++) {
       if ((m_openBuy[i]==true) || (m_openSell[i]==true))  {
@@ -479,7 +480,7 @@ for(int i=0; i<i_namesNumber; i++) {
       }
     }
  }
-
+**/
  
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
@@ -494,14 +495,15 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 		// open the new pending order
 		Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
-		s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i,0]),"_",DoubleToStr(m_sequence[i]+1,0));
+		m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,cash]) * m_accountCcyFactors[i] * (1/m_pips) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,0])),2);
+		s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0]+1,0));
 		ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_myMagicNumber[i,0]); //Opening Buy
 		Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
 		if (ticket < 0)  {                  // Success :)   
 			Alert("OrderSend ",m_names[i,0]," failed with error #", GetLastError());
 		}
 		else {
-			m_sequence[i] = m_sequence[i] + 1;                          // increment trade number
+			m_sequence[i,0] = m_sequence[i,0] + 1;                          // increment trade number
 			Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i,0]," Lots:",m_lots[i]);
 		}
 	}
@@ -516,14 +518,15 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 		// open the new pending order
 		Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
-	   	s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i,1]),"_",DoubleToStr(m_sequence[i]+1,0));
+	   	m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,cash]) * m_accountCcyFactors[i] * (1/m_pips) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
+		s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1]+1,0));
 	   	ticket=OrderSend(m_names[i,0],OP_SELLLIMIT,m_lots[i],m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_myMagicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
 		if (ticket < 0)     {                 // Success :)
 		  Alert("OrderSend ",m_names[i,0]," failed with error #", GetLastError());
 		}
 		else {
-		  m_sequence[i] = m_sequence[i] + 1;                          // increment trade number
+		  m_sequence[i,1] = m_sequence[i,1] + 1;                          // increment trade number
 		  Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i,0]," Lots:",m_lots[i]);
 	   	}
 	}
