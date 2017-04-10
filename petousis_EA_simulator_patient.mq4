@@ -270,7 +270,7 @@ void OnTimer() //void OnTick()
    f_winPerc=0,f_zeroCurveDiff=0,temp_vwap=-1.0,
    f_weightedLosses = 0.0,
    f_enterValue1=0.0,f_vol=0.0,
-   SL,TP,BID,ASK,
+   SL,TP,BID,ASK,f_central,f_band,
    f_avgWin = 0, f_avgLoss = 0,
    upper,central,lower,f_orderOpenPrice,f_orderStopLoss,
    f_filterPrev = 0,f_filter = 0,temp_T1=0,f_VWAP=0;
@@ -345,21 +345,14 @@ void OnTimer() //void OnTick()
          //m_sinewave[i] = (int)iCustom(m_names[i,0],0,"petousis_sinewave",sinewave_duration,sinewave_superSmootherMemory,3,1,1000,4,1);       //needed at every tick
          
          if (temp_T1 > 0.001) {              // previous
+            f_central = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,4]),StrToInteger(m_names[i,5]),3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
+            f_band = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,4]),StrToInteger(m_names[i,5]),3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+            m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i][0],MODE_POINT)) * MathAbs(f_band-f_central),0);
             if (temp_T1 > m_VWAP[i]) {
                m_signal[i] = 1;
-               // correct this line
-               upper = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,4]),StrToInteger(m_names[i,5]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-               central =  iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,4]),StrToInteger(m_names[i,5]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-               m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i][0],MODE_POINT)) * (upper-central),0);
-               //Alert("Buy signal for ",symb," at ",Time[0]);
             }
             else if (temp_T1 < m_VWAP[i]) {
                m_signal[i] = -1;
-               //correct this line
-               lower = iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,4]),StrToInteger(m_names[i,5]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-               central =  iCustom(m_names[i,0],0,"petousis_VWAPsignal",StrToInteger(m_names[i,4]),StrToInteger(m_names[i,5]),i_mode,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-               m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i][0],MODE_POINT)) * (central-lower),0);
-               //Alert("Sell signal for ",symb," at ",Time[0]);
             }
             else {
                m_signal[i] = 0;
