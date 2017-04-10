@@ -209,7 +209,7 @@ void OnTimer() //void OnTick()
    bool res,isNewBar,success;
    double
    f_weightedLosses = 0.0,
-   f_low,f_high,f_average,f_SR=0,f_pips=100;
+   f_low,f_high,f_digits,f_average,f_SR=0,f_pips=100;
    int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending
    bool m_openBuy[];
    bool m_openSell[];
@@ -310,12 +310,13 @@ for(int i=0; i<i_namesNumber; i++) {
 		// Then calculate all trade components for the day
 		f_SR = m_SR[i,1] - m_SR[i,0]; 
 		f_pips = NormalizeDouble((1/MarketInfo(m_names[i][0],MODE_POINT)) * f_SR,0);
-		m_openPrice[i,0] = NormalizeDouble(MarketInfo(m_names[i,0],MODE_ASK) + f_SR,MODE_DIGITS);
-		m_openPrice[i,1] = NormalizeDouble(MarketInfo(m_names[i,0],MODE_BID) - f_SR,MODE_DIGITS);
-		m_stopLoss[i,0] = NormalizeDouble(m_openPrice[i,0] - f_SR,MODE_DIGITS);
-		m_stopLoss[i,1] = NormalizeDouble(m_openPrice[i,1] + f_SR,MODE_DIGITS);
-		m_takeProfit[i,0] = NormalizeDouble(m_openPrice[i,0] + f_SR,MODE_DIGITS);
-		m_takeProfit[i,1] = NormalizeDouble(m_openPrice[i,1] - f_SR,MODE_DIGITS);
+		f_digits = MarketInfo(m_names[i,0],MODE_DIGITS);
+		m_openPrice[i,0] = NormalizeDouble(MarketInfo(m_names[i,0],MODE_ASK) + f_SR,f_digits);
+		m_openPrice[i,1] = NormalizeDouble(MarketInfo(m_names[i,0],MODE_BID) - f_SR,f_digits);
+		m_stopLoss[i,0] = NormalizeDouble(m_openPrice[i,0] - f_SR,f_digits);
+		m_stopLoss[i,1] = NormalizeDouble(m_openPrice[i,1] + f_SR,f_digits);
+		m_takeProfit[i,0] = NormalizeDouble(m_openPrice[i,0] + f_SR,f_digits);
+		m_takeProfit[i,1] = NormalizeDouble(m_openPrice[i,1] - f_SR,f_digits);
 	}
          if (~m_doneForTheDay[i]) {
 		 if (Hour()==StringToInteger(m_names[i,4]) && Minute()==StringToInteger(m_names[i,5]) && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
