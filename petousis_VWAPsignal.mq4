@@ -11,7 +11,7 @@
 //#property indicator_separate_window
 //#property indicator_minimum -1.0
 //#property indicator_maximum 1.0
-#property indicator_buffers 4
+#property indicator_buffers 5
 //#property indicator_plots   1
 //--- plot Label1
 //#property indicator_label1  "Label1"
@@ -24,6 +24,7 @@ double         buf_price[];
 double         buf_VWAP[];
 double         buf_filter[];
 double         buf_signal[];
+double         buf_centralVWAP[];   // This is the VWAP line with 0 deviation
 //--- Other parameters
 input int i_period = 200;   // rolling window
 input int filter_cutoff = 30;
@@ -56,8 +57,8 @@ int OnInit()
    SetIndexBuffer(3,buf_signal);
    SetIndexStyle(3,DRAW_ARROW,STYLE_SOLID,4,clrRed);
    
-   //SetIndexBuffer(3,buf_taildown);
-   //SetIndexStyle(3,DRAW_LINE,STYLE_SOLID,1,clrGreen);
+   SetIndexBuffer(4,buf_centralVWAP);
+   //SetIndexStyle(2,DRAW_LINE,STYLE_SOLID,2,clrTomato);
    
 //---
    return(INIT_SUCCEEDED);
@@ -96,6 +97,7 @@ int OnCalculate(const int rates_total,
       
       if ((i>=i_limit-i_period) && (i_limit>1)) {        // Initialize only at beggining, not at every live tick
          buf_VWAP[i] = buf_price[i];
+         buf_centralVWAP[i] = buf_price[i];
          buf_filter[i] = 0;
       }
       else {
@@ -109,11 +111,13 @@ int OnCalculate(const int rates_total,
                      f_cumVolume = f_cumVolume + tick_volume[i+j];
                   }
                   buf_VWAP[i] = (1 + f_deviationPerc/100) * (f_cumPriceVolume / f_cumVolume);
+                  buf_centralVWAP[i] = f_cumPriceVolume / f_cumVolume;
                   f_cumPriceVolume=0;
                   f_cumVolume=0.0;  
                   break;
                case 2:
                   buf_VWAP[i] = (1 + f_deviationPerc/100) * iMA(NULL,0,i_period,0,MODE_SMA,PRICE_CLOSE,i);
+                  buf_centralVWAP[i] = iMA(NULL,0,i_period,0,MODE_SMA,PRICE_CLOSE,i);
                   break;
                case 3:
                   if (f_deviationPerc>0) {
@@ -123,11 +127,13 @@ int OnCalculate(const int rates_total,
                   else {
                      buf_VWAP[i] = iBands(NULL,0,i_period,f_deviationPerc,0,PRICE_CLOSE,MODE_MAIN,i);
                   }
+                  buf_centralVWAP[i] = iBands(NULL,0,i_period,f_deviationPerc,0,PRICE_CLOSE,MODE_MAIN,i);
                   break;
              }
          }
          else {
             buf_VWAP[i] = f_fixVWAP;
+            buf_centralVWAP[i] = f_fixVWAP;
          }
          
          // filter
