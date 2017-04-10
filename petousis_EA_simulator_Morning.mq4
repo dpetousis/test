@@ -342,6 +342,8 @@ for(int i=0; i<i_namesNumber; i++) {
 		 }
 		 else {
 			// do nothing - normal operation
+			m_signal[i,0] = 0;		
+			m_signal[i,1] = 0;		
 		 }
 	}
 	else { // if done for the day, close all open trades
