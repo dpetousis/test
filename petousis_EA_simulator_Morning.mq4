@@ -49,6 +49,11 @@ string m_names[NAMESNUMBERMAX][8];
 int m_state[NAMESNUMBERMAX,2];		// 0:no buy/sell trade 1:pending 2:open
 bool m_doneForTheDay[NAMESNUMBERMAX];
 int m_sequence[NAMESNUMBERMAX][2];
+double m_openPrice[][2];
+double m_stopLoss[][2];
+double m_takeProfit[][2];
+double m_SR[][2];
+double m_pips[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -86,6 +91,12 @@ int OnInit()
    ArrayInitialize(m_state,0);
    ArrayInitialize(m_doneForTheDay,false);
    ArrayInitialize(m_sequence,0);
+   ArrayInitialize(m_takeProfit,false);
+   ArrayInitialize(m_stopLoss,-1);
+   ArrayInitialize(m_openPrice,0);
+   ArrayInitialize(m_SR,0);
+   ArrayInitialize(m_pips,0);
+   
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
    ArrayResize(m_magicNumber,i_namesNumber,0);
@@ -94,6 +105,11 @@ int OnInit()
    ArrayResize(m_state,i_namesNumber,0);
    ArrayResize(m_doneForTheDay,i_namesNumber,0);
    ArrayResize(m_sequence,i_namesNumber,0);
+   ArrayResize(m_takeProfit,i_namesNumber,0);
+   ArrayResize(m_stopLoss,i_namesNumber,0);
+   ArrayResize(m_openPrice,i_namesNumber,0);
+   ArrayResize(m_SR,i_namesNumber,0);
+   ArrayResize(m_pips,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -209,16 +225,12 @@ void OnTimer() //void OnTick()
    bool res,isNewBar,success;
    double
    f_weightedLosses = 0.0,
-   f_low,f_high,f_digits,f_average,f_SR=0,f_pips=100;
+   f_low,f_high,f_digits,f_average,f_SR=0;
    int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending
    bool m_openBuy[];
    bool m_openSell[];
    bool m_closeBuy[];
    bool m_closeSell[];
-   double m_openPrice[][2];
-   double m_stopLoss[][2];
-   double m_takeProfit[][2];
-   double m_SR[][2];
    string s_comment,s_orderSymbol;
    double temp_sequence[2];
    
@@ -228,19 +240,12 @@ void OnTimer() //void OnTick()
    ArrayResize(m_openSell,i_namesNumber,0);
    ArrayResize(m_closeBuy,i_namesNumber,0);
    ArrayResize(m_closeSell,i_namesNumber,0);
-   ArrayResize(m_takeProfit,i_namesNumber,0);
-   ArrayResize(m_stopLoss,i_namesNumber,0);
-   ArrayResize(m_openPrice,i_namesNumber,0);
-   ArrayResize(m_SR,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
    ArrayInitialize(m_openBuy,false);
    ArrayInitialize(m_openSell,false);
    ArrayInitialize(m_closeBuy,false);
    ArrayInitialize(m_closeSell,false);
-   ArrayInitialize(m_takeProfit,false);
-   ArrayInitialize(m_stopLoss,-1);
-   ArrayInitialize(m_openPrice,0);
-   ArrayInitialize(m_SR,0);
+   
    isNewBar=isNewBar();
    if(Bars < 100)                       // Not enough bars
      {
@@ -309,7 +314,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		 //m_averageCandle[i,0] = f_average / (double)i_SRInHours;
 		// Then calculate all trade components for the day
 		f_SR = m_SR[i,1] - m_SR[i,0]; 
-		f_pips = NormalizeDouble((1/MarketInfo(m_names[i][0],MODE_POINT)) * f_SR,0);
+		m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i][0],MODE_POINT),0);
 		f_digits = MarketInfo(m_names[i,0],MODE_DIGITS);
 		m_openPrice[i,0] = NormalizeDouble(MarketInfo(m_names[i,0],MODE_ASK) + f_SR,f_digits);
 		m_openPrice[i,1] = NormalizeDouble(MarketInfo(m_names[i,0],MODE_BID) - f_SR,f_digits);
@@ -497,7 +502,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 		// open the new pending order
 		Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_magicNumber[i,0]); 
-		m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,6]) * m_accountCcyFactors[i] * (1/f_pips) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,0])),2);
+		m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,6]) * m_accountCcyFactors[i] * (1/m_pips[i]) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,0])),2);
 		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0]+1,0));
 		i_ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_magicNumber[i,0]); //Opening Buy
 		Print("OrderSend returned:",i_ticket," Lots: ",m_lots[i]); 
@@ -510,7 +515,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 	}
 	   // Open Sell
-	 if (m_openSell[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0)  {                      // criterion for opening Sell
+	 if (m_openSell[i]==true) {// && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0)  {                      // criterion for opening Sell
 		// delete existing pending order if there is one
 		i_ticketPending = ticketPositionPendingSell(m_magicNumber[i,1],m_names[i,0]);
 		if (i_ticketPending>0) {
@@ -520,7 +525,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 		// open the new pending order
 		Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_magicNumber[i,1]); 
-	   	m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,6]) * m_accountCcyFactors[i] * (1/f_pips) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
+	   	m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,6]) * m_accountCcyFactors[i] * (1/m_pips[i]) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
 		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1]+1,0));
 	   	i_ticket=OrderSend(m_names[i,0],OP_SELLLIMIT,m_lots[i],m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",i_ticket," Lots: ",m_lots[i]); 
@@ -533,7 +538,7 @@ for(int i=0; i<i_namesNumber; i++) {
 	   	}
 	}
                                    
-        
+        }
     
                   
      
