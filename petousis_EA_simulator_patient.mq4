@@ -75,6 +75,7 @@ double m_lots[NAMESNUMBERMAX];
 double m_accountCcyFactors[NAMESNUMBERMAX];
 double m_sequence[NAMESNUMBERMAX][3];     // VWAP,Cum Losses excl current,current trade number
 string m_names[NAMESNUMBERMAX][6];
+double m_bollingerDeviationInPips[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //int directionLastOpenedTrade=0; // 0:no trade yet, 1: buy, -1:sell
@@ -115,6 +116,7 @@ int OnInit()
    ArrayInitialize(m_myMagicNumber,0);
    ArrayInitialize(m_lots,0.0);
    ArrayInitialize(m_accountCcyFactors,0.0);
+   ArrayResize(m_bollingerDeviationInPips,i_namesNumber,0);
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
    ArrayResize(m_barLastOpenedTrade,i_namesNumber,0);
@@ -123,6 +125,7 @@ int OnInit()
    ArrayResize(m_myMagicNumber,i_namesNumber,0);
    ArrayResize(m_lots,i_namesNumber,0);
    ArrayResize(m_accountCcyFactors,i_namesNumber,0);
+   ArrayInitialize(m_bollingerDeviationInPips,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -283,7 +286,6 @@ void OnTimer() //void OnTick()
    int m_ticketPositionPending[];
    double m_orderLots[];
    double m_VWAP[];
-   double m_bollingerDeviationInPips[];
    int m_orderTickets[];
    string s_comment,s_orderSymbol;
    
@@ -297,7 +299,6 @@ void OnTimer() //void OnTick()
    ArrayResize(m_ticketPositionPending,i_namesNumber,0);
    ArrayResize(m_orderLots,i_namesNumber,0);
    ArrayResize(m_VWAP,i_namesNumber,0);
-   ArrayResize(m_bollingerDeviationInPips,i_namesNumber,0);
    ArrayResize(m_orderTickets,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
    ArrayInitialize(m_openBuy,false);
@@ -308,7 +309,6 @@ void OnTimer() //void OnTick()
    ArrayInitialize(m_ticketPositionPending,-1);
    ArrayInitialize(m_orderLots,0);
    ArrayInitialize(m_VWAP,0);
-   ArrayInitialize(m_bollingerDeviationInPips,0);
    ArrayInitialize(m_orderTickets,0);
    count++;
    isNewBar=isNewBar();
