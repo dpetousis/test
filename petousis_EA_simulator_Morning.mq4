@@ -124,15 +124,16 @@ int OnInit()
       m_magicNumber[i,1] = -1 * m_magicNumber[i,0];
       // initialize m_accountCcyFactors
       /**
-      If our SL/TP is given in pips, then: For 1lot USDXXX, 1pip is USD1/USDXXX so the formula is  
-      Lots = 1/USDXXX * cash(USD) / #pips
-      For 1lot USDJPY, 1pip is JPY100 so the formula becomes Lots = 100/USDXXX * cash(USD) / #pips
-      For 1lot XXXUSD 1pip is USD1 so the formula is Lots = cash(USD) / #pips
-      For 1lot XAUUSD 1pip is USD1 so the formula is Lots = cash(USD) / #pips
-      For 1lot WTI 1pip is USD10 so the formula is Lots = 1/10 *cash(USD) / #pips
-      For 1lot CC1CC2, 1pip is USD1/USDCC2 so the formula is Lots = 1/USDCC2 * cash(USD) / #pips
-      For 1lot CC1JPY, 1pip is USD1/USDJPY so the formula is Lots = 100/USDJPY * cash(USD) / #pips
-      For 1lot CC1CC2, 1pip is USD1/CC2USD so the formula is Lots = CC2USD * cash(USD) / #pips
+      This factor defines for 1lot of each product how many USD per pip:
+      For 1lot USDXXX, 1pip is USD1/USDXXX 
+      For 1lot USDJPY, 1pip is JPY100 so 100/USDJPY
+      For 1lot XXXUSD 1pip is USD1 
+      For 1lot XAUUSD 1pip is USD1 
+      For 1lot WTI 1pip is USD10 so 10
+      For 1lot CC1CC2, 1pip is USD1/USDCC2 
+      For 1lot CC1JPY, 1pip is USD100/USDJPY 
+      For 1lot CC1CC2, 1pip is USD1/CC2USD 
+      Then by simply saying for Cash(USD)/#pips how many lots, we can use the formula lots=Cash(USD)/#pips/Factor
       **/
       if (StringCompare(StringSubstr(m_names[i,0],0,3),AccountCurrency(),false)==0) {
           if (StringCompare(StringSubstr(m_names[i,0],3,3),"JPY",false)==0) {
@@ -142,7 +143,7 @@ int OnInit()
       else if (StringCompare(StringSubstr(m_names[i,0],3,3),AccountCurrency(),false)==0) {
               m_accountCcyFactors[i] = 1.0; }
       else if (StringCompare(StringSubstr(m_names[i,0],0,3),"WTI",false)==0) {
-            m_accountCcyFactors[i] = 1.0 / 10; 
+            m_accountCcyFactors[i] = 10.0; 
          }
       else { 
          int k = getName(StringSubstr(m_names[i,0],3,3),"USD");
