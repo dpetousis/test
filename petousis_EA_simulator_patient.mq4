@@ -674,7 +674,7 @@ if (b_lockIn) {
             SL=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i,0],MODE_POINT),(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(2*BID - SL,(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
             m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+StringToDouble(m_names[i,3])) * m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
-            Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
+            Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i,0],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
@@ -682,6 +682,8 @@ if (b_lockIn) {
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
                if (ticket < 0)  {                  // Success :)   
                   Alert("OrderSend failed with error #", GetLastError());
+                  Alert("Ask: ",ASK,". SL: ",SL,". TP: ",TP);
+                  Alert("Loss: ",m_sequence[i][1],". SLinUSD: ",StringToDouble(m_names[i,3]),". Factor: ",m_accountCcyFactors[i],". Pips: ",m_bollingerDeviationInPips[i]);
                }
                else {
                   if (m_sequence[i][0] < 0) { m_sequence[i][0] = m_VWAP[i]; }       // update vwap if new sequence
@@ -710,7 +712,7 @@ if (b_lockIn) {
             SL=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i,0],MODE_POINT),(int)MarketInfo(m_names[i,0],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(2*ASK - SL,(int)MarketInfo(m_names[i,0],MODE_DIGITS));   // Calculating TP of opened
             m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+StringToDouble(m_names[i,3])) * m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
-            Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_myMagicNumber[i]); 
+            Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i,0],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
@@ -718,6 +720,8 @@ if (b_lockIn) {
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
                if (ticket < 0)     {                 // Success :)
                   Alert("OrderSend failed with error #", GetLastError());
+                  Alert("Bid: ",BID,". SL: ",SL,". TP: ",TP);
+                  Alert("Loss: ",m_sequence[i][1],". SLinUSD: ",StringToDouble(m_names[i,3]),". Factor: ",m_accountCcyFactors[i],". Pips: ",m_bollingerDeviationInPips[i]);
                }
                else {
                   if (m_sequence[i][0] < 0) { m_sequence[i][0] = m_VWAP[i]; }       // update vwap if new sequence
