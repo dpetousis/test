@@ -91,8 +91,8 @@ int OnInit()
    ArrayInitialize(m_state,0);
    ArrayInitialize(m_doneForTheDay,false);
    ArrayInitialize(m_sequence,0);
-   ArrayInitialize(m_takeProfit,false);
-   ArrayInitialize(m_stopLoss,-1);
+   ArrayInitialize(m_takeProfit,0);
+   ArrayInitialize(m_stopLoss,0);
    ArrayInitialize(m_openPrice,0);
    ArrayInitialize(m_SR,0);
    ArrayInitialize(m_pips,0);
