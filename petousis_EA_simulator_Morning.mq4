@@ -71,7 +71,7 @@ int OnInit()
    //Alert(Bars,"____",iBarShift(symb,timeFrame,TimeCurrent(),true));
    
    // READ IN THE FILE
-   string m_rows[5];       // name, trade Y/N, lots, sleep range start, sleep range end
+   string m_rows[6];       // name, trade Y/N, lots, sleep range start, sleep range end
    ushort u_sep=StringGetCharacter(",",0);
    int temp;
    string arr[];
@@ -118,7 +118,7 @@ int OnInit()
             m_names[i][j] = m_rows[j];
          }
       }
-      else { PrintFormat("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
+      else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
       m_magicNumber[i,0] = getMagicNumber(m_names[i,0],i_stratMagicNumber);
       m_magicNumber[i,1] = -1 * m_magicNumber[i,0];
