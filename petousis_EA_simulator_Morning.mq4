@@ -503,7 +503,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 		// open the new pending order
 		Print("Attempt to open Buy. Waiting for response..",m_names[i,0],m_magicNumber[i,0]); 
-		m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,6]) * m_accountCcyFactors[i] * (1/m_pips[i]) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
+		m_lots[i] = NormalizeDouble((StrToDouble(m_names[i,6]) / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
 		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0]+1,0));
 		i_ticket=OrderSend(m_names[i,0],OP_BUYLIMIT,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_magicNumber[i,0]); //Opening Buy
 		Print("OrderSend returned:",i_ticket," Lots: ",m_lots[i]); 
@@ -528,7 +528,7 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
 		// open the new pending order
 		Print("Attempt to open Sell. Waiting for response..",m_names[i,0],m_magicNumber[i,1]); 
-	   	m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,6]) * m_accountCcyFactors[i] * (1/m_pips[i]) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
+	   	m_lots[i] = NormalizeDouble((StrToDouble(m_names[i,6]) / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,1+(double)m_sequence[i,1])),2);
 		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1]+1,0));
 	   	i_ticket=OrderSend(m_names[i,0],OP_SELLLIMIT,m_lots[i],m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",i_ticket," Lots: ",m_lots[i]); 
