@@ -49,6 +49,7 @@ string m_names[NAMESNUMBERMAX];
 int m_state[NAMESNUMBERMAX,2];		// 0:no buy/sell trade 1:pending 2:open
 bool m_doneForTheDay[NAMESNUMBERMAX];
 int m_sequence[NAMESNUMBERMAX][2];
+int m_ticket[NAMESNUMBERMAX][2];
 double m_openPrice[][2];
 double m_stopLoss[][2];
 double m_takeProfit[][2];
@@ -94,6 +95,7 @@ int OnInit()
    ArrayInitialize(m_state,0);
    ArrayInitialize(m_doneForTheDay,false);
    ArrayInitialize(m_sequence,0);
+   ArrayInitialize(m_ticket,0);
    ArrayInitialize(m_takeProfit,0);
    ArrayInitialize(m_stopLoss,0);
    ArrayInitialize(m_openPrice,0);
@@ -111,6 +113,7 @@ int OnInit()
    ArrayResize(m_state,i_namesNumber,0);
    ArrayResize(m_doneForTheDay,i_namesNumber,0);
    ArrayResize(m_sequence,i_namesNumber,0);
+   ArrayResize(m_ticket,i_namesNumber,0);
    ArrayResize(m_takeProfit,i_namesNumber,0);
    ArrayResize(m_stopLoss,i_namesNumber,0);
    ArrayResize(m_openPrice,i_namesNumber,0);
@@ -518,16 +521,16 @@ if (m_tradeFlag[i]==true) {
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
-   	// Open Buy
+   	// Open Buy & Sell
    	if (m_openBuy[i]==true && m_openSell[i]==true) {
-   		// delete existing pending buy order if there is one
-   		i_ticketPending = ticketPositionPendingBuy(m_magicNumber[i,0],m_names[i]);
-   		if (i_ticketPending>0) {
-   			res = OrderDelete(i_ticketPending);
+   		// BUY: delete existing pending buy order if there is one
+		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
+		if (res && OrderType()==OP_BUYSTOP && OrderCloseTime()==0) {	// order exists and is BUYSTOP and is LIVE
+   			res = OrderDelete(m_ticket[i,0]);
    			if (res) { Print("Pending Order deleted successfully"); }
    			else { Alert("Order deletion failed with error #", GetLastError()); }
    		}
-   		// open the new pending order
+   		// BUY: open the new pending order
    		Print("Attempt to open Buy. Waiting for response..",m_names[i],m_magicNumber[i,0]); 
    		m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1])),2);
    		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0]+1,0));
@@ -540,18 +543,16 @@ if (m_tradeFlag[i]==true) {
    		}
    		else {
    			Alert ("Opened pending order Buy:",i_ticketBuy,",Symbol:",m_names[i]," Lots:",m_lots[i]);
+			m_ticket[i,0] = i_ticketBuy;
    		}
-   	//}
-	   // Open Sell
-	 //if (m_openSell[i]==true) {
-		// delete existing pending order if there is one
-		i_ticketPending = ticketPositionPendingSell(m_magicNumber[i,1],m_names[i]);
-		if (i_ticketPending>0) {
-			res = OrderDelete(i_ticketPending);
+		// SELL: delete existing pending order if there is one
+		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
+		if (res && OrderType()==OP_SELLSTOP && OrderCloseTime()==0) {	// order exists and is SELLSTOP and is LIVE
+			res = OrderDelete(m_ticket[i,1]);
 			if (res) { Print("Pending Order deleted successfully"); }
 			else { Alert("Order deletion failed with error #", GetLastError()); }
 		}
-		// open the new pending order
+		// SELL: open the new pending order
 		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
 	   	m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1])),2);
 		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1]+1,0));
@@ -564,12 +565,13 @@ if (m_tradeFlag[i]==true) {
 		}
 		else {
 		  Alert ("Opened pending order Sell ",i_ticketSell,",Symbol:",m_names[i]," Lots:",m_lots[i]);
-	   }
-	   // update sequence number
-	   if (i_ticketSell > 0 && i_ticketSell > 0) {
-	      m_sequence[i,0] = m_sequence[i,0] + 1;
-	      m_sequence[i,1] = m_sequence[i,1] + 1;                          // increment trade number
-	   }
+		  m_ticket[i,1] = i_ticketSell;
+	   	}
+		// update sequence number ONLY when both orders are opened
+		if (i_ticketBuy > 0 && i_ticketSell > 0) {
+		      m_sequence[i,0] = m_sequence[i,0] + 1;
+		      m_sequence[i,1] = m_sequence[i,1] + 1;                          // increment trade number
+	   	}
 	 }                  
   }
   }
@@ -782,6 +784,7 @@ if (m_tradeFlag[i]==true) {
    string result[];
    ushort u_sep=StringGetCharacter("_",0);
    int temp;
+   bool flag=false;
    ArrayInitialize(output,0);
    if (b_searchHistory) {
       for(int i=OrdersHistoryTotal()-1; i>=0; i--) {
@@ -789,10 +792,10 @@ if (m_tradeFlag[i]==true) {
             temp = StringSplit(OrderComment(),u_sep,result);
             if (ArraySize(result)<2) { 
                if (StringCompare(result[0],"cancelled",false)!=0) { 
-                  PrintFormat("Comment format is wrong for historical order for %s",symbol); 
+                  Alert("Comment format is wrong for historical order for ",symbol); 
                }
                else {
-                  Alert("Order in history is cancelled, moving to the next one.");
+                  Alert("Order in history is cancelled for ", symbol,", moving to the next one.");
                }
             }
             else {
@@ -802,11 +805,9 @@ if (m_tradeFlag[i]==true) {
                   output[1] = StrToDouble(result[1]); } // sequence number
                else if (temp>=0) {
                   output[1] = StrToDouble(StringSubstr(result[1],0,temp)); }
-               return true;
+               flag=true;
+	       if (flag==true) { break; }
             }
-         }
-         else  {
-            return false; 
          }
       }
    }
@@ -820,15 +821,13 @@ if (m_tradeFlag[i]==true) {
             else {
                output[0] = 0.0; //profit
                output[1] = StrToDouble(result[1]);   // sequence number
-               return true;
+               flag = true;
+	       if (flag==true) { break; }
             }
-         }
-         else  {
-            return false; 
          }
       }
    }
-   return false;
+   return flag;
   }
   
   
