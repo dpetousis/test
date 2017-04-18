@@ -283,18 +283,39 @@ void OnTimer() //void OnTick()
 // ORDERS ACCOUNTING
 for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
-   if (Hour()==0) {				// At midnight reset
-	   m_doneForTheDay[i] = false;
-	}
    
 	if (~m_doneForTheDay[i]) {
-	
+		// BUY:
 		// if there is already a closed trade today and we hit TP -> done for the day
-		res = readLastTradeComment(m_magicNumber[i,0],m_names[i],true,temp_sequence);
-		if (res && temp_sequence[0]>0) { m_doneForTheDay[i] = true; }
-		res = readLastTradeComment(m_magicNumber[i,1],m_names[i],true,temp_sequence);
-		if (res && temp_sequence[0]>0) { m_doneForTheDay[i] = true; }
+		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
+		if (res) {
+			if (OrderCloseTime()>0) {					// if closed
+				if (OrderProfit()>0) { m_doneForTheDay[i] = true; } 
+				m_state[i,0] = 0;
+			}
+			else {
+				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
+				else { m_state[i,0] = 1; }
+			}
+		}
+		else { Alert("Failed to select trade: ",m_ticket[i,0]); }
+		
+		// SELL: 
+		// if there is already a closed trade today and we hit TP -> done for the day
+		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
+		if (res) {
+			if (OrderCloseTime()>0) {					// if closed
+				if (OrderProfit()>0) { m_doneForTheDay[i] = true; } 
+				m_state[i,1] = 0;
+			}
+			else {
+				if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
+				else { m_state[i,1] = 1; }
+			}
+		}
+		else { Alert("Failed to select trade: ",m_ticket[i,1]); }
 
+/**
 		// update states - buy
 		i_ticketPending = ticketPositionPendingBuy(m_magicNumber[i,0],m_names[i]);
 		i_ticketOpen = ticketPositionOpenBuy(m_magicNumber[i,0],m_names[i]);
@@ -309,7 +330,7 @@ if (m_tradeFlag[i]==true) {
 		else if (i_ticketPending>0 && i_ticketOpen<0) { m_state[i,1] = 1; }
 		else if (i_ticketPending<0 && i_ticketOpen>0) { m_state[i,1] = 2; }
 		else { m_state[i,1] = 0; }
-      
+**/
 		// checks
 		if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
 	}
@@ -410,26 +431,24 @@ if (m_tradeFlag[i]==true) {
 	for(int i=0; i<i_namesNumber; i++) {
 	if (m_tradeFlag[i]==true) {
 		if (m_closeBuy[i]==true) {
-			i_ticketBuy = ticketPositionBuy(m_magicNumber[i,0],m_names[i]);
-			i_orderType = OrderType();
-			if (i_orderType==OP_BUY) {
-				success = OrderClose(i_ticketBuy,OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }
-			else if (i_orderType==OP_BUYSTOP) {
-				success = OrderDelete(i_ticketBuy);
+			res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
+			if (OrderType()==OP_BUY) {
+				success = OrderClose(m_ticket[i,0],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }
+			else {
+				success = OrderDelete(m_ticket[i,0]);
 			}
 			if (success) { Print("Order closed successfully"); }
-			else { Alert("Order #",i_ticketBuy," failed to close with error #", GetLastError()); }
+			else { Alert("Order #",m_ticket[i,0]," failed to close with error #", GetLastError()); }
 		}
 		if (m_closeSell[i]==true) {
-			i_ticketSell = ticketPositionSell(m_magicNumber[i,1],m_names[i]);
-			i_orderType = OrderType();
-			if (i_orderType==OP_SELL) {
-				success = OrderClose(i_ticketSell,OrderLots(),MarketInfo(m_names[i],MODE_ASK),100); }
-			else if (i_orderType==OP_SELLSTOP) {
-				success = OrderDelete(i_ticketSell);
+			res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
+			if (OrderType()==OP_SELL) {
+				success = OrderClose(m_ticket[i,1],OrderLots(),MarketInfo(m_names[i],MODE_ASK),100); }
+			else {
+				success = OrderDelete(m_ticket[i,1]);
 			}
 			if (success) { Print("Order closed successfully"); }
-			else { Alert("Order #",i_ticketSell," failed to close with error #", GetLastError()); }
+			else { Alert("Order #",m_ticket[i,1]," failed to close with error #", GetLastError()); }
 		}
     }
     }
