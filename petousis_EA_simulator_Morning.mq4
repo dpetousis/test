@@ -243,7 +243,7 @@ void OnTimer() //void OnTick()
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
    i_ticketPending=-1,i_ticketOpen,i_ticketSell,i_ticketBuy,i_SRInMin,i_orderType,i_digits,
-   i_win=0,i_loss=0;
+   i_win=0,i_loss=0,i_count=0;
    bool res,isNewBar,success;
    double
    f_weightedLosses = 0.0,
@@ -292,6 +292,7 @@ if (m_tradeFlag[i]==true) {
 			if (OrderCloseTime()>0) {					// if closed
 				if (OrderProfit()>0) { m_doneForTheDay[i] = true; } 
 				m_state[i,0] = 0;
+				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_doneForTheDay[i]);
 			}
 			else {
 				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
@@ -307,6 +308,7 @@ if (m_tradeFlag[i]==true) {
 			if (OrderCloseTime()>0) {					// if closed
 				if (OrderProfit()>0) { m_doneForTheDay[i] = true; } 
 				m_state[i,1] = 0;
+				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_doneForTheDay[i]);
 			}
 			else {
 				if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
@@ -332,9 +334,16 @@ if (m_tradeFlag[i]==true) {
 		else { m_state[i,1] = 0; }
 **/
 		// checks
+		i_count = i_count + 1;		// count of products still live, if none then terminate EA
 		if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
 	}
 }
+}
+
+// TERMINATE EA IF NO PRODUCTS ARE LIVE ///////////////////////////////////////////////////////////////////////////////////////////////
+if (i_count==0) { 
+	ExpertRemove(); 
+	Alert("EA removed because no products are live");
 }
 
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
