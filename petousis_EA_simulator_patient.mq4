@@ -695,7 +695,7 @@ if (b_lockIn) {
             BID = MarketInfo(m_names[i],MODE_BID);
             ASK = MarketInfo(m_names[i],MODE_ASK);
             SL=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
-            TP=NormalizeDouble(2*BID - SL,(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
+            TP=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
             m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
             Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
@@ -733,7 +733,7 @@ if (b_lockIn) {
             BID = MarketInfo(m_names[i],MODE_BID);
             ASK = MarketInfo(m_names[i],MODE_ASK);
             SL=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
-            TP=NormalizeDouble(2*ASK - SL,(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
+            TP=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
             m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
             Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {
