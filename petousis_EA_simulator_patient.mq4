@@ -363,9 +363,11 @@ void OnTimer() //void OnTick()
          //m_sinewave[i] = (int)iCustom(m_names[i,0],0,"petousis_sinewave",sinewave_duration,sinewave_superSmootherMemory,3,1,1000,4,1);       //needed at every tick
          
          if (temp_T1 > 0.001) {              // previous
-            f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
-            f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-            m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(f_band-f_central),0);
+            if (m_sequence[i][2]<1) {         // new sequence, so update the pips
+              f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
+              f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+              m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(f_band-f_central),0);
+            }
             if (temp_T1 > m_VWAP[i]) {
                m_signal[i] = 1;
             }
