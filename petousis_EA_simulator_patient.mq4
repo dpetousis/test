@@ -341,6 +341,8 @@ void OnTimer() //void OnTick()
      }
       
 
+            
+
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    //if (isNewBar || (count == 1)) {
    //if (TimeMinute(TimeCurrent()) != i_minuteLastCalced) {      // repeat every minute not at every tick - EA is for large timeframes
@@ -593,7 +595,6 @@ if (b_lockIn) {
       }
    }
    i_ordersHistoryTotal = new_ordersHistoryTotal;        // update
-            
    
    
 // OPENING TRADING CRITERIA  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
