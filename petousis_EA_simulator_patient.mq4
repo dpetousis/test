@@ -692,10 +692,10 @@ if (b_lockIn) {
          if (m_openBuy[i]==true) // && (int)MarketInfo(m_names[i,0],MODE_TRADEALLOWED)>0) 
            {                                       // criterion for opening Buy
             //RefreshRates();                        // Refresh rates
-            BID = MarketInfo(m_names[i],MODE_BID);
+            //BID = MarketInfo(m_names[i],MODE_BID);
             ASK = MarketInfo(m_names[i],MODE_ASK);
-            SL=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
-            TP=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
+            SL=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
+            TP=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
             m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
             Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
@@ -731,9 +731,9 @@ if (b_lockIn) {
            {                                       // criterion for opening Sell
             //RefreshRates();                        // Refresh rates
             BID = MarketInfo(m_names[i],MODE_BID);
-            ASK = MarketInfo(m_names[i],MODE_ASK);
-            SL=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
-            TP=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
+            //ASK = MarketInfo(m_names[i],MODE_ASK);
+            SL=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
+            TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
             m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
             Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {
