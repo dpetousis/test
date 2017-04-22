@@ -242,7 +242,7 @@ void OnTimer() //void OnTick()
 
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
-   i_ticketPending=-1,i_ticketOpen,i_ticketSell,i_ticketBuy,i_SRInMin,i_orderType,i_digits,
+   i_ticketPending=-1,i_ticketSell,i_ticketBuy,i_SRInMin,i_digits,
    i_win=0,i_loss=0,i_count=0;
    bool res,isNewBar,success;
    double
