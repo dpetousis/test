@@ -179,10 +179,12 @@ int OnInit()
       else { 
          int k = getName(StringSubstr(m_names[i],3,3),"USD");
          if (k>=0) {
-            if (StringCompare(m_names[k],"USDJPY",false)==0) {
-               m_accountCcyFactors[i] = 100 / MarketInfo(m_names[k],MODE_BID); }
-            else if (StringFind(m_names[k],"USD")==0) {
-               m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[k],MODE_BID); }
+            if (StringFind(m_names[k],"USD")==0) {
+               if (StringCompare(m_names[k],"USDJPY",false)==0) {
+                  m_accountCcyFactors[i] = 100 / MarketInfo(m_names[k],MODE_BID); }
+               else {
+                  m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[k],MODE_BID); }
+            }
             else if (StringFind(m_names[k],"USD")==3) {
                m_accountCcyFactors[i] = MarketInfo(m_names[k],MODE_BID); } 
          } 
