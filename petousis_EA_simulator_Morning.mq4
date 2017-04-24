@@ -284,7 +284,7 @@ void OnTimer() //void OnTick()
 for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
    
-	if (~m_doneForTheDay[i]) {
+	if (m_doneForTheDay[i]==false) {
 		// BUY:
 		// if there is already a closed trade today and we hit TP -> done for the day
 		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
@@ -377,7 +377,7 @@ if (i_count==0) {
       		m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
       		m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
 	      }
-         if (~m_doneForTheDay[i]) {
+         if (m_doneForTheDay[i]==false) {
       		 if (Hour()==m_SRTimes[i,2] && Minute()==m_SRTimes[i,3] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
       			m_signal[i,0] = 1;		//open pending
       			m_signal[i,1] = 1;		// open pending
