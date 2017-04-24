@@ -407,10 +407,12 @@ if (i_count==0) {
       		 }
 	      }
       	else { // if done for the day, close all open trades
-      		if (m_state[i,0]>0 || m_state[i,1]>0) {
+      		if (m_state[i,0]>0) {
       			m_signal[i,0] = -1;		// close trade
-      			m_signal[i,1] = -1;		// close trade
       		}
+		if (m_state[i,1]>0) {
+			m_signal[i,1] = -1;		// close trade
+		}
       	}
       }
       }
