@@ -30,15 +30,14 @@
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches
 input string s_inputFileName = "TF_DEMO_M5_Morning.txt"; 
-bool b_orderSizeByLabouchere = true;
-bool b_sendEmail=false;
 input int i_stratMagicNumber = 90;		// Always positive
-int const i_hourEndFriday = 23;
+input int i_stdevHistory = 1500;
+input int i_maAveragingPeriod = 20;
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
 //double const b_commission = 6*Point+10*Point;  // commission + safety net
-//int const i_maxDrawdown = 10000;      // in USD max drawdown
+double f_stddevThreshold = 0;
 int const timeFrame=Period();        
 bool Work = true;             //EA will work
 string const symb =Symbol();
@@ -52,11 +51,10 @@ int m_ticket[NAMESNUMBERMAX][2];
 double m_openPrice[][2];
 double m_stopLoss[][2];
 double m_takeProfit[][2];
-double m_SR[][2];       // low,high
-int m_SRTimes[][4];  // hh,mm,hh,mm
 double m_pips[];
 bool m_tradeFlag[];
 double m_profitInUSD[];
+double m_stddev[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -97,11 +95,10 @@ int OnInit()
    ArrayInitialize(m_takeProfit,0);
    ArrayInitialize(m_stopLoss,0);
    ArrayInitialize(m_openPrice,0);
-   ArrayInitialize(m_SR,0);
-   ArrayInitialize(m_SRTimes,0);
    ArrayInitialize(m_pips,0);
    ArrayInitialize(m_tradeFlag,false);
    ArrayInitialize(m_profitInUSD,0);
+   ArrayInitialize(m_stddev,0);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -114,11 +111,10 @@ int OnInit()
    ArrayResize(m_takeProfit,i_namesNumber,0);
    ArrayResize(m_stopLoss,i_namesNumber,0);
    ArrayResize(m_openPrice,i_namesNumber,0);
-   ArrayResize(m_SR,i_namesNumber,0);
-   ArrayResize(m_SRTimes,i_namesNumber,0);
    ArrayResize(m_pips,i_namesNumber,0);
    ArrayResize(m_tradeFlag,i_namesNumber,0);
    ArrayResize(m_profitInUSD,i_namesNumber,0);
+   ArrayResize(m_stddev,i_stdevHistory,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -127,14 +123,7 @@ int OnInit()
          if (StringCompare(m_rows[1],"Y",false)==0) {
             m_tradeFlag[i] = true;
          }
-         m_SRTimes[i][0] = StrToInteger(m_rows[2]);
-         m_SRTimes[i][1] = StrToInteger(m_rows[3]);
-         m_SRTimes[i][2] = StrToInteger(m_rows[4]);
-         m_SRTimes[i][3] = StrToInteger(m_rows[5]);
-         m_profitInUSD[i] = StringToDouble(m_rows[6]);
-         //for (int j=0; j<ArraySize(m_rows); j++) {
-         //   m_names[i][j] = m_rows[j];
-         //}
+         m_profitInUSD[i] = StringToDouble(m_rows[2]);
       }
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
@@ -177,7 +166,12 @@ int OnInit()
             m_accountCcyFactors[i] = 1.0;       // not a currency
          }
       }
-      
+      // Estimate threshold standard deviation
+      for (int j=0;j<i_stdevHistory;j++) {
+      		m_stddev[j] = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,j+1);
+      }
+      ArraySort(m_stddev[],WHOLE_ARRAY,0,MODE_ASCEND);
+      f_stddevThreshold = m_stddev[int(i_stdevHistory/20)]; 		// 5th percentile
    }
    
    Alert ("Function init() triggered at start for ",symb);// Alert
@@ -287,6 +281,7 @@ if (m_tradeFlag[i]==true) {
 	if (res) {
 		if (OrderCloseTime()>0) {					// if closed
 			if (OrderProfit()>0) { 
+				b_sequenceEndedFlag = true;
 				m_sequence[i][0] = 0; 
 				m_sequence[i][1] = 0;
 			} 
@@ -306,6 +301,7 @@ if (m_tradeFlag[i]==true) {
 	if (res) {
 		if (OrderCloseTime()>0) {					// if closed
 			if (OrderProfit()>0) { 
+				b_sequenceEndedFlag = true;
 				m_sequence[i][0] = 0; 
 				m_sequence[i][1] = 0;
 			} 
@@ -337,23 +333,15 @@ if (i_count==0) {
    //if (TimeMinute(TimeCurrent()) != i_minuteLastCalced) {      // repeat every minute not at every tick - EA is for large timeframes
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
-      	 // Once a day at the end of the sleep range calculate today's values
-      	 if (Hour()==m_SRTimes[i,2] && Minute()==m_SRTimes[i,3]) {
-      		 // use format 3:23,6:50 given as 3,23,6,50
-      		 i_SRInMin = (m_SRTimes[i,2] - m_SRTimes[i,0])*60 + m_SRTimes[i,3] - m_SRTimes[i,1];
-      		 f_low = 100000;
-      		 f_high = 0;
-      		 f_average = 0;
-      		 for (int ishift=0; ishift<i_SRInMin; ishift++) {
-      			f_low = MathMin(f_low,iLow(m_names[i],PERIOD_M1,ishift));
-      			f_high = MathMax(f_high,iHigh(m_names[i],PERIOD_M1,ishift));
-      			//f_average = f_average + f_high - f_low;
-      		 }
-      		 m_SR[i,0] = f_low;
-      		 m_SR[i,1] = f_high;
-      		 //m_averageCandle[i,0] = f_average / (double)i_SRInHours;
-      		// Then calculate all trade components for the day
-      		f_SR = m_SR[i,1] - m_SR[i,0]; 
+      	 
+	 f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
+	 
+	 // When stdev<threshold AND sequence=0 AND states=0
+      	 if (f_stddevCurr<f_stddevThreshold && m_sequence[i][0]==0 && m_state[i,0]==0 && m_state[i,1]==0) {
+      		// Then calculate all trade components for the sequence
+      		f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,3,0,PRICE_CLOSE,MODE_LOWER,1);
+		f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,3,0,PRICE_CLOSE,MODE_UPPER,1);
+		f_SR = (f_high - f_low)/2; 
       		m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
       		i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
       		m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
@@ -363,36 +351,10 @@ if (i_count==0) {
       		m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
       		m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
 	  }
-	 if (Hour()==m_SRTimes[i,2] && Minute()==m_SRTimes[i,3] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
-		m_signal[i,0] = 1;		//open pending
-		m_signal[i,1] = 1;		// open pending
-	 }
-	 else if (m_state[i,0]==0 && m_state[i,1]==1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
-		m_signal[i,0] = 1;		// open pending
-		m_signal[i,1] = 1;		// delete->open new pending 
-	 }
-	 else if (m_state[i,0]==1 && m_state[i,1]==0) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
-		m_signal[i,0] = 1;		// delete->new open pending
-		m_signal[i,1] = 1;		// open pending
-	 }
-	 else if ((m_state[i,0]==2 && m_state[i,1]==0) || (m_state[i,0]==0 && m_state[i,1]==2)) {	// something wrong
-		m_signal[i,0] = -1;		// close trade
-		m_signal[i,1] = -1;		// close trade
-		Alert("Something is wrong, one trade is open but there is no pending order.");
-	 }
-	 else if (m_state[i,0]==2 && m_state[i,1]==2) {
-		m_signal[i,0] = -1;		// close trade
-		m_signal[i,1] = -1;		// close trade
-		Alert("Something is wrong, both trades open at the same time.");
-	 }
-	 else {
-		// do nothing - normal operation
-		m_signal[i,0] = 0;		
-		m_signal[i,1] = 0;		
-	 }
-	 /**
-      	else { // if done for the day, close all open trades
-      		if (m_state[i,0]>0) {
+	  
+	  // Signals
+	  if (b_sequenceEndedFlag) {
+	  	if (m_state[i,0]>0) {
       			m_signal[i,0] = -1;		// close trade
       		}
 		else { m_signal[i,0] = 0; }
@@ -400,8 +362,37 @@ if (i_count==0) {
 			m_signal[i,1] = -1;		// close trade
 		}
 		else { m_signal[i,1] = 0; }
-      	}
-	**/
+	  }
+	  else {
+		 if (f_stddevCurr<f_stddevThreshold && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
+			m_signal[i,0] = 1;		//open pending
+			m_signal[i,1] = 1;		// open pending
+		 }
+		 else if (m_state[i,0]==0 && m_state[i,1]==1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
+			m_signal[i,0] = 1;		// open pending
+			m_signal[i,1] = 1;		// delete->open new pending 
+		 }
+		 else if (m_state[i,0]==1 && m_state[i,1]==0) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
+			m_signal[i,0] = 1;		// delete->new open pending
+			m_signal[i,1] = 1;		// open pending
+		 }
+		 else if ((m_state[i,0]==2 && m_state[i,1]==0) || (m_state[i,0]==0 && m_state[i,1]==2)) {	// something wrong
+			m_signal[i,0] = -1;		// close trade
+			m_signal[i,1] = -1;		// close trade
+			Alert("Something is wrong, one trade is open but there is no pending order.");
+		 }
+		 else if (m_state[i,0]==2 && m_state[i,1]==2) {
+			m_signal[i,0] = -1;		// close trade
+			m_signal[i,1] = -1;		// close trade
+			Alert("Something is wrong, both trades open at the same time.");
+		 }
+		 else {
+			// do nothing - normal operation
+			m_signal[i,0] = 0;		
+			m_signal[i,1] = 0;		
+		 }
+	}
+	 
       }
       }
 
