@@ -29,8 +29,8 @@
 
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches
-input string s_inputFileName = "TF_DEMO_M5_Morning.txt"; 
-input int i_stratMagicNumber = 90;		// Always positive
+input string s_inputFileName = "TF_DEMO_MarketMaker.txt"; 
+input int i_stratMagicNumber = 80;		// Always positive
 input int i_stdevHistory = 1500;
 input int i_maAveragingPeriod = 20;
 
@@ -170,8 +170,10 @@ int OnInit()
       for (int j=0;j<i_stdevHistory;j++) {
       		m_stddev[j] = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,j+1);
       }
-      ArraySort(m_stddev[],WHOLE_ARRAY,0,MODE_ASCEND);
-      f_stddevThreshold = m_stddev[int(i_stdevHistory/20)]; 		// 5th percentile
+      bool res = ArraySort(m_stddev[],WHOLE_ARRAY,0,MODE_ASCEND);
+      if (res) { f_stddevThreshold = m_stddev[int(i_stdevHistory/20)]; }		// 5th percentile
+      else { Alert("Standard deviation array could not be sorted."); }
+      ArrayFree(m_stddev[]);
    }
    
    Alert ("Function init() triggered at start for ",symb);// Alert
