@@ -47,7 +47,6 @@ double m_lots[NAMESNUMBERMAX];
 double m_accountCcyFactors[NAMESNUMBERMAX];
 string m_names[NAMESNUMBERMAX];
 int m_state[NAMESNUMBERMAX,2];		// 0:no buy/sell trade 1:pending 2:open
-bool m_doneForTheDay[NAMESNUMBERMAX];
 int m_sequence[NAMESNUMBERMAX][2];
 int m_ticket[NAMESNUMBERMAX][2];
 double m_openPrice[][2];
@@ -93,7 +92,6 @@ int OnInit()
    ArrayInitialize(m_lots,0.0);
    ArrayInitialize(m_accountCcyFactors,0.0);
    ArrayInitialize(m_state,0);
-   ArrayInitialize(m_doneForTheDay,false);
    ArrayInitialize(m_sequence,0);
    ArrayInitialize(m_ticket,0);
    ArrayInitialize(m_takeProfit,0);
@@ -111,7 +109,6 @@ int OnInit()
    ArrayResize(m_lots,i_namesNumber,0);
    ArrayResize(m_accountCcyFactors,i_namesNumber,0);
    ArrayResize(m_state,i_namesNumber,0);
-   ArrayResize(m_doneForTheDay,i_namesNumber,0);
    ArrayResize(m_sequence,i_namesNumber,0);
    ArrayResize(m_ticket,i_namesNumber,0);
    ArrayResize(m_takeProfit,i_namesNumber,0);
@@ -284,59 +281,48 @@ void OnTimer() //void OnTick()
 for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
    
-	if (m_doneForTheDay[i]==false) {
-		// BUY:
-		// if there is already a closed trade today and we hit TP -> done for the day
-		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
-		if (res) {
-			if (OrderCloseTime()>0) {					// if closed
-				if (OrderProfit()>0) { m_doneForTheDay[i] = true; } 
-				m_state[i,0] = 0;
-				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_doneForTheDay[i]);
-			}
-			else {
-				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
-				else { m_state[i,0] = 1; }
-			}
+	// BUY:
+	// if there is already a closed trade today and we hit TP -> sequence restart
+	res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
+	if (res) {
+		if (OrderCloseTime()>0) {					// if closed
+			if (OrderProfit()>0) { 
+				m_sequence[i][0] = 0; 
+				m_sequence[i][1] = 0;
+			} 
+			m_state[i,0] = 0;
+			Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_doneForTheDay[i]);
 		}
-		else { Alert("Failed to select trade: ",m_ticket[i,0]); }
-		
-		// SELL: 
-		// if there is already a closed trade today and we hit TP -> done for the day
-		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
-		if (res) {
-			if (OrderCloseTime()>0) {					// if closed
-				if (OrderProfit()>0) { m_doneForTheDay[i] = true; } 
-				m_state[i,1] = 0;
-				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_doneForTheDay[i]);
-			}
-			else {
-				if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
-				else { m_state[i,1] = 1; }
-			}
+		else {
+			if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
+			else { m_state[i,0] = 1; }
 		}
-		else { Alert("Failed to select trade: ",m_ticket[i,1]); }
-
-/**
-		// update states - buy
-		i_ticketPending = ticketPositionPendingBuy(m_magicNumber[i,0],m_names[i]);
-		i_ticketOpen = ticketPositionOpenBuy(m_magicNumber[i,0],m_names[i]);
-		if (i_ticketPending>0 && i_ticketOpen>0) { Alert(m_names[i],": ERROR - We have two trades in same direction."); }
-		else if (i_ticketPending>0 && i_ticketOpen<0) { m_state[i,0] = 1; }
-		else if (i_ticketPending<0 && i_ticketOpen>0) { m_state[i,0] = 2; }
-		else { m_state[i,0] = 0; }
-		// update states - sell
-		i_ticketPending = ticketPositionPendingSell(m_magicNumber[i,1],m_names[i]);
-		i_ticketOpen = ticketPositionOpenSell(m_magicNumber[i,1],m_names[i]);
-		if (i_ticketPending>0 && i_ticketOpen>0) { Alert(m_names[i],": ERROR - We have two trades in same direction."); }
-		else if (i_ticketPending>0 && i_ticketOpen<0) { m_state[i,1] = 1; }
-		else if (i_ticketPending<0 && i_ticketOpen>0) { m_state[i,1] = 2; }
-		else { m_state[i,1] = 0; }
-**/
-		// checks
-		i_count = i_count + 1;		// count of products still live, if none then terminate EA
-		if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
 	}
+	else { Alert("Failed to select trade: ",m_ticket[i,0]); }
+
+	// SELL: 
+	// if there is already a closed trade today and we hit TP -> done for the day
+	res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
+	if (res) {
+		if (OrderCloseTime()>0) {					// if closed
+			if (OrderProfit()>0) { 
+				m_sequence[i][0] = 0; 
+				m_sequence[i][1] = 0;
+			} 
+			m_state[i,1] = 0;
+			Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_doneForTheDay[i]);
+		}
+		else {
+			if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
+			else { m_state[i,1] = 1; }
+		}
+	}
+	else { Alert("Failed to select trade: ",m_ticket[i,1]); }
+
+	// checks
+	i_count = i_count + 1;		// count of products still live, if none then terminate EA
+	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
+
 }
 }
 
@@ -376,36 +362,35 @@ if (i_count==0) {
       		m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
       		m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
       		m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
-	      }
-         if (m_doneForTheDay[i]==false) {
-      		 if (Hour()==m_SRTimes[i,2] && Minute()==m_SRTimes[i,3] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
-      			m_signal[i,0] = 1;		//open pending
-      			m_signal[i,1] = 1;		// open pending
-      		 }
-      		 else if (m_state[i,0]==0 && m_state[i,1]==1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
-      			m_signal[i,0] = 1;		// open pending
-      			m_signal[i,1] = 1;		// delete->open new pending 
-      		 }
-      		 else if (m_state[i,0]==1 && m_state[i,1]==0) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
-      			m_signal[i,0] = 1;		// delete->new open pending
-      			m_signal[i,1] = 1;		// open pending
-      		 }
-      		 else if ((m_state[i,0]==2 && m_state[i,1]==0) || (m_state[i,0]==0 && m_state[i,1]==2)) {	// something wrong
-      			m_signal[i,0] = -1;		// close trade
-      			m_signal[i,1] = -1;		// close trade
-      			Alert("Something is wrong, one trade is open but there is no pending order.");
-      		 }
-      		 else if (m_state[i,0]==2 && m_state[i,1]==2) {
-      			m_signal[i,0] = -1;		// close trade
-      			m_signal[i,1] = -1;		// close trade
-      			Alert("Something is wrong, both trades open at the same time.");
-      		 }
-      		 else {
-      			// do nothing - normal operation
-      			m_signal[i,0] = 0;		
-      			m_signal[i,1] = 0;		
-      		 }
-	      }
+	  }
+	 if (Hour()==m_SRTimes[i,2] && Minute()==m_SRTimes[i,3] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
+		m_signal[i,0] = 1;		//open pending
+		m_signal[i,1] = 1;		// open pending
+	 }
+	 else if (m_state[i,0]==0 && m_state[i,1]==1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
+		m_signal[i,0] = 1;		// open pending
+		m_signal[i,1] = 1;		// delete->open new pending 
+	 }
+	 else if (m_state[i,0]==1 && m_state[i,1]==0) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
+		m_signal[i,0] = 1;		// delete->new open pending
+		m_signal[i,1] = 1;		// open pending
+	 }
+	 else if ((m_state[i,0]==2 && m_state[i,1]==0) || (m_state[i,0]==0 && m_state[i,1]==2)) {	// something wrong
+		m_signal[i,0] = -1;		// close trade
+		m_signal[i,1] = -1;		// close trade
+		Alert("Something is wrong, one trade is open but there is no pending order.");
+	 }
+	 else if (m_state[i,0]==2 && m_state[i,1]==2) {
+		m_signal[i,0] = -1;		// close trade
+		m_signal[i,1] = -1;		// close trade
+		Alert("Something is wrong, both trades open at the same time.");
+	 }
+	 else {
+		// do nothing - normal operation
+		m_signal[i,0] = 0;		
+		m_signal[i,1] = 0;		
+	 }
+	 /**
       	else { // if done for the day, close all open trades
       		if (m_state[i,0]>0) {
       			m_signal[i,0] = -1;		// close trade
@@ -416,6 +401,7 @@ if (i_count==0) {
 		}
 		else { m_signal[i,1] = 0; }
       	}
+	**/
       }
       }
 
