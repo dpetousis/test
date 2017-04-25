@@ -782,7 +782,7 @@ if (i_count==0) {
   {
    for(int i=0; i<i_namesNumber; i++) {
       if (StringCompare(symbol,m_names[i],false) == 0) { 
-         return stratMagicNumber*100000 + DayOfYear()*100 + (i+1); 
+         return stratMagicNumber*100 + (i+1); 
       }
    }
    return 0;
