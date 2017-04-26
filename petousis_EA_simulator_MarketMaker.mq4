@@ -288,12 +288,17 @@ if (m_tradeFlag[i]==true) {
 	if (m_ticket[i][0]>0) {
 		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
 		if (res) {
-			if (OrderCloseTime()>0) {					// if closed
-				if (OrderProfit()>0) { 
+			if (OrderCloseTime()>0) {			// if closed
+				f_orderProfit = OrderProfit();
+				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
 					m_sequence[i][0] = 0; 
 					m_sequence[i][1] = 0;
 				} 
+				else if (f_orderProfit<0) {
+					m_sequence[i][0] = m_sequence[i][0] + 1; 
+					m_sequence[i][1] = m_sequence[i][1] + 1;
+				}
 				m_state[i,0] = 0;
 				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][0] = 0;	// reset ticket
@@ -312,11 +317,16 @@ if (m_tradeFlag[i]==true) {
 		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
 		if (res) {
 			if (OrderCloseTime()>0) {					// if closed
+				f_orderProfit = OrderProfit();
 				if (OrderProfit()>0) { 
 					m_sequenceEndedFlag[i] = true;
 					m_sequence[i][0] = 0; 
 					m_sequence[i][1] = 0;
 				} 
+				else if (f_orderProfit<0) {
+					m_sequence[i][0] = m_sequence[i][0] + 1; 
+					m_sequence[i][1] = m_sequence[i][1] + 1;
+				}
 				m_state[i,1] = 0;
 				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][1] = 0;	// reset ticket
@@ -522,8 +532,8 @@ if (i_count==0) {
    		}
    		// BUY: open the new pending order
    		Print("Attempt to open Buy. Waiting for response..",m_names[i],m_magicNumber[i,0]); 
-   		m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1])),2);
-   		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0]+1,0));
+   		m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),2);
+   		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0],0));
    		i_ticketBuy=OrderSend(m_names[i],OP_BUYSTOP,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_magicNumber[i,0]); //Opening Buy
    		Print("OrderSend returned:",i_ticketBuy," Lots: ",m_lots[i]); 
    		if (i_ticketBuy < 0)  {                  // Success :)   
@@ -544,8 +554,8 @@ if (i_count==0) {
 		}
 		// SELL: open the new pending order
 		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
-	   	m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1])),2);
-		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1]+1,0));
+	   	m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),2);
+		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1],0));
 	   	i_ticketSell=OrderSend(m_names[i],OP_SELLSTOP,m_lots[i],m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",i_ticketSell," Lots: ",m_lots[i]); 
 		if (i_ticketSell < 0)     {                 // Success :)
@@ -558,10 +568,10 @@ if (i_count==0) {
 		  m_ticket[i,1] = i_ticketSell;
 	   	}
 		// update sequence number ONLY when both orders are opened
-		if (i_ticketBuy > 0 && i_ticketSell > 0) {
-		      m_sequence[i,0] = m_sequence[i,0] + 1;
-		      m_sequence[i,1] = m_sequence[i,1] + 1;                          // increment trade number
-	   	}
+		//if (i_ticketBuy > 0 && i_ticketSell > 0) {
+		//      m_sequence[i,0] = m_sequence[i,0] + 1;
+		//      m_sequence[i,1] = m_sequence[i,1] + 1;                          // increment trade number
+	   	//}
 	 }                  
   }
   }
