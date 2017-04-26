@@ -174,7 +174,7 @@ int OnInit()
       		m_stddev[j] = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,j+1);
       }
       bool res = ArraySort(m_stddev,WHOLE_ARRAY,0,MODE_ASCEND);
-      if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory/20)]; }		// 5th percentile
+      if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory/10)]; }		// 10th percentile
       else { Alert("Standard deviation array could not be sorted."); }
    }
    
