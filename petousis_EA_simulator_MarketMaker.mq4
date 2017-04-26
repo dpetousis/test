@@ -279,56 +279,54 @@ void OnTimer() //void OnTick()
       return;                                   // Exit start()
      }
 
-// ORDERS ACCOUNTING
+// UPDATE STATUS	///////////////////////////////////////////////////////////////////////////////////////////////////////////
 for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
    
 	// BUY:
 	// if there is already a closed trade today and we hit TP -> sequence restart
-	res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
-	if (res) {
-		if (OrderCloseTime()>0) {					// if closed
-			if (OrderProfit()>0) { 
-				m_sequenceEndedFlag[i] = true;
-				m_sequence[i][0] = 0; 
-				m_sequence[i][1] = 0;
-			} 
-			m_state[i,0] = 0;
-			Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
+	if (m_ticket[i][0]>0) {
+		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
+		if (res) {
+			if (OrderCloseTime()>0) {					// if closed
+				if (OrderProfit()>0) { 
+					m_sequenceEndedFlag[i] = true;
+					m_sequence[i][0] = 0; 
+					m_sequence[i][1] = 0;
+				} 
+				m_state[i,0] = 0;
+				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
+				m_ticket[i][0] = 0;	// reset ticket
+			}
+			else {
+				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
+				else { m_state[i,0] = 1; }
+			}
 		}
-		else {
-			if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
-			else { m_state[i,0] = 1; }
-		}
-	}
-	else { 
-		if (m_ticket[i][0]>0) {
-			Alert("Failed to select trade: ",m_ticket[i,0]); 
-		}
+		else { Alert("Failed to select trade: ",m_ticket[i,0]); }
 	}
 
 	// SELL: 
 	// if there is already a closed trade today and we hit TP -> done for the day
-	res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
-	if (res) {
-		if (OrderCloseTime()>0) {					// if closed
-			if (OrderProfit()>0) { 
-				m_sequenceEndedFlag[i] = true;
-				m_sequence[i][0] = 0; 
-				m_sequence[i][1] = 0;
-			} 
-			m_state[i,1] = 0;
-			Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
+	if (m_ticket[i][1]>0) {
+		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
+		if (res) {
+			if (OrderCloseTime()>0) {					// if closed
+				if (OrderProfit()>0) { 
+					m_sequenceEndedFlag[i] = true;
+					m_sequence[i][0] = 0; 
+					m_sequence[i][1] = 0;
+				} 
+				m_state[i,1] = 0;
+				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
+				m_ticket[i][1] = 0;	// reset ticket
+			}
+			else {
+				if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
+				else { m_state[i,1] = 1; }
+			}
 		}
-		else {
-			if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
-			else { m_state[i,1] = 1; }
-		}
-	}
-	else { 
-		if (m_ticket[i][1]>0) {
-			Alert("Failed to select trade: ",m_ticket[i,1]); 
-		}
+		else { Alert("Failed to select trade: ",m_ticket[i,1]); }
 	}
 
 	// checks
