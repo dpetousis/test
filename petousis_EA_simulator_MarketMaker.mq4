@@ -37,7 +37,6 @@ input int i_maAveragingPeriod = 20;
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
 //double const b_commission = 6*Point+10*Point;  // commission + safety net
-double f_stddevThreshold = 0;
 int const timeFrame=Period();        
 bool Work = true;             //EA will work
 string const symb =Symbol();
@@ -55,6 +54,7 @@ double m_pips[];
 bool m_tradeFlag[];
 double m_profitInUSD[];
 double m_stddev[];
+double m_stddevThreshold[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -99,6 +99,7 @@ int OnInit()
    ArrayInitialize(m_tradeFlag,false);
    ArrayInitialize(m_profitInUSD,0);
    ArrayInitialize(m_stddev,0);
+   ArrayInitialize(m_stddevThreshold,0);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -115,6 +116,7 @@ int OnInit()
    ArrayResize(m_tradeFlag,i_namesNumber,0);
    ArrayResize(m_profitInUSD,i_namesNumber,0);
    ArrayResize(m_stddev,i_stdevHistory,0);
+   ArrayResize(m_stddevThreshold,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -172,7 +174,7 @@ int OnInit()
       		m_stddev[j] = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,j+1);
       }
       bool res = ArraySort(m_stddev,WHOLE_ARRAY,0,MODE_ASCEND);
-      if (res) { f_stddevThreshold = m_stddev[int(i_stdevHistory/20)]; }		// 5th percentile
+      if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory/20)]; }		// 5th percentile
       else { Alert("Standard deviation array could not be sorted."); }
    }
    
@@ -299,7 +301,11 @@ if (m_tradeFlag[i]==true) {
 			else { m_state[i,0] = 1; }
 		}
 	}
-	else { Alert("Failed to select trade: ",m_ticket[i,0]); }
+	else { 
+		if (m_sequence[i][0]>0) {
+			Alert("Failed to select trade: ",m_ticket[i,0]); 
+		}
+	}
 
 	// SELL: 
 	// if there is already a closed trade today and we hit TP -> done for the day
@@ -319,7 +325,11 @@ if (m_tradeFlag[i]==true) {
 			else { m_state[i,1] = 1; }
 		}
 	}
-	else { Alert("Failed to select trade: ",m_ticket[i,1]); }
+	else { 
+		if (m_sequence[i][1]>0) {
+			Alert("Failed to select trade: ",m_ticket[i,1]); 
+		}
+	}
 
 	// checks
 	i_count = i_count + 1;		// count of products still live, if none then terminate EA
@@ -343,7 +353,7 @@ if (i_count==0) {
 	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
 	 
 	      // When stdev<threshold AND sequence=0 AND states=0
-      	 if (f_stddevCurr<f_stddevThreshold && m_sequence[i][0]==0 && m_state[i,0]==0 && m_state[i,1]==0) {
+      	 if (f_stddevCurr<m_stddevThreshold[i] && m_sequence[i][0]==0 && m_state[i,0]==0 && m_state[i,1]==0) {
       		// Then calculate all trade components for the sequence
       		f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,3,0,PRICE_CLOSE,MODE_LOWER,1);
       		f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,3,0,PRICE_CLOSE,MODE_UPPER,1);
@@ -370,7 +380,7 @@ if (i_count==0) {
       		else { m_signal[i,1] = 0; }
       	  }
    	  else {
-   		 if (f_stddevCurr<f_stddevThreshold && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
+   		 if (f_stddevCurr<m_stddevThreshold[i] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
    			m_signal[i,0] = 1;		//open pending
    			m_signal[i,1] = 1;		// open pending
    		 }
