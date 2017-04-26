@@ -302,7 +302,7 @@ if (m_tradeFlag[i]==true) {
 		}
 	}
 	else { 
-		if (m_sequence[i][0]>0) {
+		if (m_ticket[i][0]>0) {
 			Alert("Failed to select trade: ",m_ticket[i,0]); 
 		}
 	}
@@ -326,7 +326,7 @@ if (m_tradeFlag[i]==true) {
 		}
 	}
 	else { 
-		if (m_sequence[i][1]>0) {
+		if (m_ticket[i][1]>0) {
 			Alert("Failed to select trade: ",m_ticket[i,1]); 
 		}
 	}
