@@ -475,6 +475,7 @@ if (m_tradeFlag[i]==true) {
 			} 
 			m_state[i,0] = 0;
 			Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
+			m_ticket[i,0]=0;		// reset m_ticket
 		}
 		else {
 			if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
@@ -495,6 +496,7 @@ if (m_tradeFlag[i]==true) {
 			} 
 			m_state[i,1] = 0;
 			Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
+			m_ticket[i,1]=0;		// reset m_ticket
 		}
 		else {
 			if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
