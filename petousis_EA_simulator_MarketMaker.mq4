@@ -92,7 +92,7 @@ int OnInit()
    ArrayInitialize(m_lots,0.0);
    ArrayInitialize(m_accountCcyFactors,0.0);
    ArrayInitialize(m_state,0);
-   ArrayInitialize(m_sequence,0);
+   ArrayInitialize(m_sequence,1);
    ArrayInitialize(m_ticket,0);
    ArrayInitialize(m_takeProfit,0);
    ArrayInitialize(m_stopLoss,0);
@@ -297,8 +297,8 @@ if (m_tradeFlag[i]==true) {
 				f_orderProfit = OrderProfit();
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
-					m_sequence[i][0] = 0; 
-					m_sequence[i][1] = 0;
+					m_sequence[i][0] = 1; 
+					m_sequence[i][1] = 1;
 				} 
 				else if (f_orderProfit<0) {
 					m_sequence[i][0] = m_sequence[i][0] + 1; 
@@ -325,8 +325,8 @@ if (m_tradeFlag[i]==true) {
 				f_orderProfit = OrderProfit();
 				if (OrderProfit()>0) { 
 					m_sequenceEndedFlag[i] = true;
-					m_sequence[i][0] = 0; 
-					m_sequence[i][1] = 0;
+					m_sequence[i][0] = 1; 
+					m_sequence[i][1] = 1;
 				} 
 				else if (f_orderProfit<0) {
 					m_sequence[i][0] = m_sequence[i][0] + 1; 
