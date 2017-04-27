@@ -53,6 +53,7 @@ double m_takeProfit[][2];
 double m_pips[];
 bool m_tradeFlag[];
 double m_profitInUSD[];
+double m_rangeMin[];
 double m_stddev[];
 double m_stddevThreshold[];
 
@@ -98,6 +99,7 @@ int OnInit()
    ArrayInitialize(m_pips,0);
    ArrayInitialize(m_tradeFlag,false);
    ArrayInitialize(m_profitInUSD,0);
+   ArrayInitialize(m_rangeMin,0);
    ArrayInitialize(m_stddev,0);
    ArrayInitialize(m_stddevThreshold,0);
    
@@ -115,6 +117,7 @@ int OnInit()
    ArrayResize(m_pips,i_namesNumber,0);
    ArrayResize(m_tradeFlag,i_namesNumber,0);
    ArrayResize(m_profitInUSD,i_namesNumber,0);
+   ArrayResize(m_rangeMin,i_namesNumber,0);
    ArrayResize(m_stddev,i_stdevHistory,0);
    ArrayResize(m_stddevThreshold,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
@@ -126,6 +129,7 @@ int OnInit()
             m_tradeFlag[i] = true;
          }
          m_profitInUSD[i] = StringToDouble(m_rows[2]);
+	 m_rangeMin[i] = StringToDouble(m_rows[3]);
       }
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
@@ -242,7 +246,7 @@ void OnTimer() //void OnTick()
    i_win=0,i_loss=0,i_count=0;
    bool res,isNewBar,success;
    double
-   f_weightedLosses = 0.0,f_stddevCurr=0.0,
+   f_weightedLosses = 0.0,f_stddevCurr=0.0,f_orderProfit=0.0,
    f_low,f_high,f_SR=0;
    int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending
    bool m_openBuy[];
@@ -365,7 +369,7 @@ if (i_count==0) {
       		// Then calculate all trade components for the sequence
       		f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,3,0,PRICE_CLOSE,MODE_LOWER,1);
       		f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,3,0,PRICE_CLOSE,MODE_UPPER,1);
-      		f_SR = (f_high - f_low)/2; 
+      		f_SR = MathMax((f_high - f_low)/2,m_rangeMin[i]); 
       		m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
       		i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
       		m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
