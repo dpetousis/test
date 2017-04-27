@@ -245,9 +245,9 @@ void OnTimer() //void OnTick()
    int 
    i_ticketPending=-1,i_ticketSell,i_ticketBuy,i_digits,
    i_win=0,i_loss=0,i_count=0;
-   bool res,isNewBar,success;
+   bool res,isNewBar,success,b_enter;
    double
-   f_weightedLosses = 0.0,f_stddevCurr=0.0,f_orderProfit=0.0,
+   f_weightedLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,
    f_low,f_high,f_SR=0;
    int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending
    bool m_openBuy[];
@@ -362,25 +362,26 @@ if (i_count==0) {
    //if (TimeMinute(TimeCurrent()) != i_minuteLastCalced) {      // repeat every minute not at every tick - EA is for large timeframes
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
-      	 
-	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
-	 
-	      // When stdev<threshold AND sequence=0 AND states=0
-      	 if (f_stddevCurr<m_stddevThreshold[i] && m_sequence[i][0]==0 && m_state[i,0]==0 && m_state[i,1]==0) {
-      		// Then calculate all trade components for the sequence
-      		f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
-      		f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
-      		f_SR = MathMax((f_high - f_low)/2,m_rangeMin[i]); 
-      		m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
-      		i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
-      		m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
-      		m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
-      		m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR,i_digits);
-      		m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
-      		m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
-      		m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
+      	 // When not in sequence, check for signal to enter
+	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0) {
+	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
+	      f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
+	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]);
+      	      if (b_enter) {
+			// Then calculate all trade components for the sequence
+			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
+			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
+			f_SR = MathMax((f_high - f_low)/2,m_rangeMin[i]); 
+			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
+			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
+			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
+			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR,i_digits);
+			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
+			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
+			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
 	      }
-	  
+	  }
    	  // Signals
    	  if (m_sequenceEndedFlag[i]) {
       	  	if (m_state[i,0]>0) {
