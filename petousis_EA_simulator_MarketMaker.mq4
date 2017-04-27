@@ -179,13 +179,25 @@ int OnInit()
       		m_stddev[j] = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,j+1);
       }
       bool res = ArraySort(m_stddev,WHOLE_ARRAY,0,MODE_ASCEND);
-      if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory/10)]; }		// 10th percentile
+      if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory/10)]; }		// 10th percentile	
       else { Alert("Standard deviation array could not be sorted."); }
    }
    
+   // write to file
+   int filehandle=FileOpen("STDEV_THRESHOLDS.txt",FILE_WRITE|FILE_TXT);
+   if(filehandle!=INVALID_HANDLE) {
+      for(int i=0; i<i_namesNumber; i++) {
+	FileWrite(filehandle,m_names[i],m_stddevThreshold[i]);
+      }
+      FileClose(filehandle);
+   }
+   else Print("File open failed, error ",GetLastError());
+   
+   // not a demo alert
    Alert ("Function init() triggered at start for ",symb);// Alert
    if (IsDemo() == false) { Alert("THIS IS NOT A DEMO RUN"); }
    
+   // free memory
    ArrayFree(m_stddev);
 //---
    return(INIT_SUCCEEDED);
