@@ -57,6 +57,7 @@ double m_profitInUSD[];
 double m_rangeMin[];
 double m_stddev[];
 double m_stddevThreshold[];
+double m_tradingHours[][2];		// start,end in in double format h+m/60
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -103,6 +104,7 @@ int OnInit()
    ArrayInitialize(m_rangeMin,0);
    ArrayInitialize(m_stddev,0);
    ArrayInitialize(m_stddevThreshold,0);
+   ArrayInitialize(m_tradingHours,0.0);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -121,6 +123,7 @@ int OnInit()
    ArrayResize(m_rangeMin,i_namesNumber,0);
    ArrayResize(m_stddev,i_stdevHistory,0);
    ArrayResize(m_stddevThreshold,i_namesNumber,0);
+   ArrayResize(m_tradingHours,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -130,7 +133,9 @@ int OnInit()
             m_tradeFlag[i] = true;
          }
          m_profitInUSD[i] = StringToDouble(m_rows[2]);
-	      m_rangeMin[i] = StringToDouble(m_rows[3]);
+	 m_rangeMin[i] = StringToDouble(m_rows[3]);
+	 m_tradingHours[i][0] = StringToDouble(m_rows[4]) + StringToDouble(m_rows[5])/60;
+	 m_tradingHours[i][1] = StringToDouble(m_rows[6]) + StringToDouble(m_rows[7])/60;
       }
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
@@ -267,6 +272,7 @@ void OnTimer() //void OnTick()
    bool m_closeBuy[];
    bool m_closeSell[];
    bool m_sequenceEndedFlag[];
+   bool m_insideTradingHours[];
    string s_comment,s_orderSymbol;
    double temp_sequence[2];
    
@@ -277,12 +283,14 @@ void OnTimer() //void OnTick()
    ArrayResize(m_closeBuy,i_namesNumber,0);
    ArrayResize(m_closeSell,i_namesNumber,0);
    ArrayResize(m_sequenceEndedFlag,i_namesNumber,0);
+   ArrayResize(m_insideTradingHours,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
    ArrayInitialize(m_openBuy,false);
    ArrayInitialize(m_openSell,false);
    ArrayInitialize(m_closeBuy,false);
    ArrayInitialize(m_closeSell,false);
    ArrayInitialize(m_sequenceEndedFlag,false);
+   ArrayInitialize(m_insideTradingHours,false);
    
    isNewBar=isNewBar();
    if(Bars < 100)                       // Not enough bars
@@ -297,9 +305,18 @@ void OnTimer() //void OnTick()
      }
 
 // UPDATE STATUS	///////////////////////////////////////////////////////////////////////////////////////////////////////////
+f_time = Hour()+Minute()/60;
 for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
-   
+   	
+	// Set trading hours flag
+	if (m_tradingHours[i][0] < m_tradingHours[i][1]) {				// when not crossing midnight
+		m_insideTradingHours[i] = ~(f_time>m_tradingHours[i][0] && f_time<m_tradingHours[i][1]); 
+	}
+	else if (m_tradingHours[i][0] > m_tradingHours[i][1]) {			// when crossing midnight
+		m_insideTradingHours[i] = ~(f_time>m_tradingHours[i][0] || f_time<m_tradingHours[i][1]); 
+	}
+	
 	// BUY:
 	// if there is already a closed trade today and we hit TP -> sequence restart
 	if (m_ticket[i][0]>0) {
@@ -406,7 +423,7 @@ if (i_count==0) {
       		else { m_signal[i,1] = 0; }
       	  }
    	  else {
-   		 if (f_stddevCurr<m_stddevThreshold[i] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
+   		 if (m_insideTradingHours[i] && f_stddevCurr<m_stddevThreshold[i] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
    			m_signal[i,0] = 1;		//open pending
    			m_signal[i,1] = 1;		// open pending
    		 }
@@ -423,10 +440,16 @@ if (i_count==0) {
    			m_signal[i,1] = -1;		// close trade
    			Alert("Something is wrong, one trade is open but there is no pending order.");
    		 }
-   		 else if (m_state[i,0]==2 && m_state[i,1]==2) {
+   		 else if (m_state[i,0]==2 && m_state[i,1]==2) {							// something wrong
    			m_signal[i,0] = -1;		// close trade
    			m_signal[i,1] = -1;		// close trade
    			Alert("Something is wrong, both trades open at the same time.");
+   		 }
+		 else if ((~m_insideTradingHours[i]) && m_sequence[i][0]==1 && m_sequence[i][1]==1 && (m_state[i,0]==1 || m_state[i,1]==1)) {
+   			// if outside trading hours and have two pending orders open and sequence has just started then close them.
+			m_signal[i,0] = -1;		// close trade
+   			m_signal[i,1] = -1;		// close trade
+   			Alert("Closing both pending orders: outside trading hours.");
    		 }
    		 else {
    			// do nothing - normal operation
