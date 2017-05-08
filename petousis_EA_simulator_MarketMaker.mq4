@@ -145,6 +145,7 @@ int OnInit()
       m_magicNumber[i,1] = -1 * m_magicNumber[i,0];
       
       // initialize m_accountCcyFactors
+      m_accountCcyFactors[i] = accCcyFactor(m_names[i]);	/////////////////////////////////////////////
       /**
       This factor defines for 1lot of each product how many USD per pip:
       For 1lot USDXXX, 1pip is USD1/USDXXX 
@@ -922,6 +923,49 @@ if (i_count==0) {
 	   }
    }
    return flag;
+  }
+  
+  double accCcyFactor(string symbol)
+  {
+      // initialize m_accountCcyFactors
+      /**
+      This factor defines for 1lot of each product how many USD per pip:
+      For 1lot USDXXX, 1pip is USD1/USDXXX 
+      For 1lot USDJPY, 1pip is JPY100 so 100/USDJPY
+      For 1lot XXXUSD 1pip is USD1 
+      For 1lot XAUUSD 1pip is USD1 
+      For 1lot WTI 1pip is USD10 so 10
+      For 1lot CC1CC2, 1pip is USD1/USDCC2 
+      For 1lot CC1JPY, 1pip is USD100/USDJPY 
+      For 1lot CC1CC2, 1pip is USD1/CC2USD 
+      Then by simply saying for Cash(USD)/#pips how many lots, we can use the formula lots=Cash(USD)/#pips/Factor
+      **/
+      double result;
+      if (StringCompare(StringSubstr(symbol,0,3),AccountCurrency(),false)==0) {
+          if (StringCompare(StringSubstr(symbol,3,3),"JPY",false)==0) {
+              result = 100 / MarketInfo(symbol,MODE_BID); }
+          else { result = 1.0 / MarketInfo(symbol,MODE_BID); }
+      }
+      else if (StringCompare(StringSubstr(symbol,3,3),AccountCurrency(),false)==0) {
+              result = 1.0; }
+      else if (StringCompare(StringSubstr(symbol,0,3),"WTI",false)==0) {
+            result = 10.0; 
+         }
+      else { 
+         int k = getName(StringSubstr(symbol,3,3),"USD");
+         if (k>=0) {
+            if (StringCompare(m_names[k],"USDJPY",false)==0) {
+               result = 100 / MarketInfo(m_names[k],MODE_BID); }
+            else if (StringFind(m_names[k],"USD")==0) {
+               result = 1.0 / MarketInfo(m_names[k],MODE_BID); }
+            else if (StringFind(m_names[k],"USD")==3) {
+               result = MarketInfo(m_names[k],MODE_BID); } 
+         } 
+         else {
+            result = 1.0;       // not a currency
+         }
+      }
+      return result;
   }
   
   /**
