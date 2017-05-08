@@ -871,6 +871,34 @@ if (i_count==0) {
    return flag;
   }
   
+  bool readTradeComment(int myMagicNumber,string symbol, double &output[])
+  {
+   string result[];
+   ushort u_sep=StringGetCharacter("_",0);
+   int temp;
+   bool flag=false;
+   ArrayInitialize(output,0);
+   for(int i=OrdersTotal()-1; i>=0; i--) {
+	   if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol) {
+	      temp = StringSplit(OrderComment(),u_sep,result);
+	      if (ArraySize(result)<2) { 
+		PrintFormat("Comment format is wrong for live order for %s",symbol); 
+	      }
+	      else {
+	       output[0] = StrToDouble(result[1]);   // sequence number
+	       output[1] = OrderTicket();		// ticket number
+	       if (OrderType()<2) { output[2] = 1; }	// state
+	       else { output[2] = 2; }
+	       output[3] = OrderTakeProfit();		// TP
+	       output[4] = OrderStopLoss();		// SL
+	       output[5] = OrderOpenPrice();		// open price
+	       flag = true;
+	       if (flag==true) { break; }
+	      }
+	   }
+   }
+   return flag;
+  }
   
   /**
   int labouchereLosses(int myMagicNumber,string symbol)
