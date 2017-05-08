@@ -79,6 +79,7 @@ int OnInit()
    ushort u_sep=StringGetCharacter(",",0);
    int temp;
    string arr[];
+   double commentArr[];
    int filehandle=FileOpen(s_inputFileName,FILE_READ|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
       FileReadArray(filehandle,arr);
@@ -125,6 +126,7 @@ int OnInit()
    ArrayResize(m_stddevThreshold,i_namesNumber,0);
    ArrayResize(m_tradingHours,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
+   
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
       if (temp == ArraySize(m_rows)) {
@@ -141,6 +143,7 @@ int OnInit()
       // magic numbers
       m_magicNumber[i,0] = getMagicNumber(m_names[i],i_stratMagicNumber);
       m_magicNumber[i,1] = -1 * m_magicNumber[i,0];
+      
       // initialize m_accountCcyFactors
       /**
       This factor defines for 1lot of each product how many USD per pip:
@@ -178,6 +181,7 @@ int OnInit()
             m_accountCcyFactors[i] = 1.0;       // not a currency
          }
       }
+      
       // Estimate threshold standard deviation
       //Print(ArraySize(m_stddev));
       for (int j=0;j<i_stdevHistory;j++) {
@@ -186,6 +190,26 @@ int OnInit()
       bool res = ArraySort(m_stddev,WHOLE_ARRAY,0,MODE_ASCEND);
       if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory/10)]; }		// 10th percentile	
       else { Alert("Standard deviation array could not be sorted."); }
+      
+      // UPDATE WITH EXISTING TRADES AT START OF EA
+      if (readTradeComment(m_magicNumber[i,0],m_names[i],commentArr)==true) {		// BUY
+      	m_sequence[i][0] = (int)commentArr[0];
+	m_ticket[i][0] = (int)commentArr[1];
+	m_state[i][0] = (int)commentArr[2];
+	m_takeProfit[i][0] = commentArr[3];
+	m_stopLoss[i][0] = commentArr[4];
+	m_openPrice[i][0] = commentArr[5];
+	m_pips[i] = NormalizeDouble((m_takeProfit[i][0]-m_openPrice[i,0]) / MarketInfo(m_names[i],MODE_POINT),0);
+      }
+      if (readTradeComment(m_magicNumber[i,1],m_names[i],commentArr)==true) {		// SELL
+      	m_sequence[i][1] = (int)commentArr[0];
+	m_ticket[i][1] = (int)commentArr[1];
+	m_state[i][1] = (int)commentArr[2];
+	m_takeProfit[i][1] = commentArr[3];
+	m_stopLoss[i][1] = commentArr[4];
+	m_openPrice[i][1] = commentArr[5];
+	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]) / MarketInfo(m_names[i],MODE_POINT),0);
+      }
    }
    
    // write to file
