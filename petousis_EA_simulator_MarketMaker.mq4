@@ -57,7 +57,7 @@ double m_profitInUSD[];
 double m_rangeMin[];
 double m_stddev[];
 double m_stddevThreshold[];
-double m_tradingHours[][2];		// start,end in in double format h+m/60
+double m_tradingHours[][2]; // start,end in in double format h+m/60
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -126,7 +126,6 @@ int OnInit()
    ArrayResize(m_stddevThreshold,i_namesNumber,0);
    ArrayResize(m_tradingHours,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
-   
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
       if (temp == ArraySize(m_rows)) {
@@ -135,17 +134,16 @@ int OnInit()
             m_tradeFlag[i] = true;
          }
          m_profitInUSD[i] = StringToDouble(m_rows[2]);
-	 m_rangeMin[i] = StringToDouble(m_rows[3]);
-	 m_tradingHours[i][0] = StringToDouble(m_rows[4]) + StringToDouble(m_rows[5])/60;
-	 m_tradingHours[i][1] = StringToDouble(m_rows[6]) + StringToDouble(m_rows[7])/60;
+	      m_rangeMin[i] = StringToDouble(m_rows[3]);
+	      m_tradingHours[i][0] = StringToDouble(m_rows[4]) + StringToDouble(m_rows[5])/60;
+         m_tradingHours[i][1] = StringToDouble(m_rows[6]) + StringToDouble(m_rows[7])/60;
       }
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
       m_magicNumber[i,0] = getMagicNumber(m_names[i],i_stratMagicNumber);
       m_magicNumber[i,1] = -1 * m_magicNumber[i,0];
-      
       // initialize m_accountCcyFactors
-      m_accountCcyFactors[i] = accCcyFactor(m_names[i]);	/////////////////////////////////////////////
+      m_accountCcyFactors[i] = accCcyFactor(m_names[i]); 
       /**
       This factor defines for 1lot of each product how many USD per pip:
       For 1lot USDXXX, 1pip is USD1/USDXXX 
@@ -157,7 +155,6 @@ int OnInit()
       For 1lot CC1JPY, 1pip is USD100/USDJPY 
       For 1lot CC1CC2, 1pip is USD1/CC2USD 
       Then by simply saying for Cash(USD)/#pips how many lots, we can use the formula lots=Cash(USD)/#pips/Factor
-      **/
       if (StringCompare(StringSubstr(m_names[i],0,3),AccountCurrency(),false)==0) {
           if (StringCompare(StringSubstr(m_names[i],3,3),"JPY",false)==0) {
               m_accountCcyFactors[i] = 100 / MarketInfo(m_names[i],MODE_BID); }
@@ -171,7 +168,7 @@ int OnInit()
       else { 
          int k = getName(StringSubstr(m_names[i],3,3),"USD");
          if (k>=0) {
-            if (StringCompare(m_names[k],"USDJPY",false)==0) {
+            if (StringFind(m_names[k],"USDJPY")>=0) {
                m_accountCcyFactors[i] = 100 / MarketInfo(m_names[k],MODE_BID); }
             else if (StringFind(m_names[k],"USD")==0) {
                m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[k],MODE_BID); }
@@ -182,7 +179,7 @@ int OnInit()
             m_accountCcyFactors[i] = 1.0;       // not a currency
          }
       }
-      
+      **/
       // Estimate threshold standard deviation
       //Print(ArraySize(m_stddev));
       for (int j=0;j<i_stdevHistory;j++) {
@@ -195,21 +192,21 @@ int OnInit()
       // UPDATE WITH EXISTING TRADES AT START OF EA
       if (readTradeComment(m_magicNumber[i,0],m_names[i],commentArr)==true) {		// BUY
       	m_sequence[i][0] = (int)commentArr[0];
-	m_ticket[i][0] = (int)commentArr[1];
-	m_state[i][0] = (int)commentArr[2];
-	m_takeProfit[i][0] = commentArr[3];
-	m_stopLoss[i][0] = commentArr[4];
-	m_openPrice[i][0] = commentArr[5];
-	m_pips[i] = NormalizeDouble((m_takeProfit[i][0]-m_openPrice[i,0]) / MarketInfo(m_names[i],MODE_POINT),0);
+      	m_ticket[i][0] = (int)commentArr[1];
+      	m_state[i][0] = (int)commentArr[2];
+      	m_takeProfit[i][0] = commentArr[3];
+      	m_stopLoss[i][0] = commentArr[4];
+      	m_openPrice[i][0] = commentArr[5];
+      	m_pips[i] = NormalizeDouble((m_takeProfit[i][0]-m_openPrice[i,0]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
       if (readTradeComment(m_magicNumber[i,1],m_names[i],commentArr)==true) {		// SELL
       	m_sequence[i][1] = (int)commentArr[0];
-	m_ticket[i][1] = (int)commentArr[1];
-	m_state[i][1] = (int)commentArr[2];
-	m_takeProfit[i][1] = commentArr[3];
-	m_stopLoss[i][1] = commentArr[4];
-	m_openPrice[i][1] = commentArr[5];
-	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]) / MarketInfo(m_names[i],MODE_POINT),0);
+      	m_ticket[i][1] = (int)commentArr[1];
+      	m_state[i][1] = (int)commentArr[2];
+      	m_takeProfit[i][1] = commentArr[3];
+      	m_stopLoss[i][1] = commentArr[4];
+      	m_openPrice[i][1] = commentArr[5];
+      	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
    }
    
@@ -289,7 +286,7 @@ void OnTimer() //void OnTick()
    i_win=0,i_loss=0,i_count=0;
    bool res,isNewBar,success,b_enter;
    double
-   f_weightedLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,
+   f_weightedLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,f_time=0.0,
    f_low,f_high,f_SR=0;
    int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending
    bool m_openBuy[];
@@ -333,15 +330,15 @@ void OnTimer() //void OnTick()
 f_time = Hour()+Minute()/60;
 for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
-   	
-	// Set trading hours flag
+   
+   // Set trading hours flag
 	if (m_tradingHours[i][0] < m_tradingHours[i][1]) {				// when not crossing midnight
 		m_insideTradingHours[i] = ~(f_time>m_tradingHours[i][0] && f_time<m_tradingHours[i][1]); 
 	}
 	else if (m_tradingHours[i][0] > m_tradingHours[i][1]) {			// when crossing midnight
 		m_insideTradingHours[i] = ~(f_time>m_tradingHours[i][0] || f_time<m_tradingHours[i][1]); 
-	}
-	
+   }
+   
 	// BUY:
 	// if there is already a closed trade today and we hit TP -> sequence restart
 	if (m_ticket[i][0]>0) {
@@ -417,25 +414,28 @@ if (i_count==0) {
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
       	 // When not in sequence, check for signal to enter
-	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0) {
-	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
-	      f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
-	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]);
-      	      if (b_enter) {
-			// Then calculate all trade components for the sequence
-			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
-			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
-			f_SR = MathMax((f_high - f_low)/2,m_rangeMin[i]); 
-			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
-			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
-			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
-			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
-			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR,i_digits);
-			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
-			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
-			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
-	      }
-	  }
+      	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0) {
+      	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
+      	      f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
+      	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]);
+            	      if (b_enter) {
+      			// Then calculate all trade components for the sequence
+      			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
+      			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
+      			f_SR = MathMax((f_high - f_low)/2,m_rangeMin[i]); 
+      			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
+      			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+      			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
+      			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
+      			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR,i_digits);
+      			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
+      			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
+      			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
+      	      }
+      	  }
+	  
+	      
+	  
    	  // Signals
    	  if (m_sequenceEndedFlag[i]) {
       	  	if (m_state[i,0]>0) {
@@ -448,9 +448,15 @@ if (i_count==0) {
       		else { m_signal[i,1] = 0; }
       	  }
    	  else {
-   		 if (m_insideTradingHours[i] && f_stddevCurr<m_stddevThreshold[i] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
-   			m_signal[i,0] = 1;		//open pending
-   			m_signal[i,1] = 1;		// open pending
+   		 if (f_stddevCurr<m_stddevThreshold[i] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
+   		   if (~m_insideTradingHours[i] && m_sequence[i][0]==1 && m_sequence[i][1]==1) {    // if outside of trading hours dont open new sequence
+      			m_signal[i,0] = 0;		//do nothing
+      			m_signal[i,1] = 0;		// do nothing
+      		}
+   			else {
+   			   m_signal[i,0] = 1;		//open pending
+   			   m_signal[i,1] = 1;		// open pending
+   			}
    		 }
    		 else if (m_state[i,0]==0 && m_state[i,1]==1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
    			m_signal[i,0] = 1;		// open pending
@@ -465,17 +471,17 @@ if (i_count==0) {
    			m_signal[i,1] = -1;		// close trade
    			Alert("Something is wrong, one trade is open but there is no pending order.");
    		 }
-   		 else if (m_state[i,0]==2 && m_state[i,1]==2) {							// something wrong
+   		 else if (m_state[i,0]==2 && m_state[i,1]==2) {
    			m_signal[i,0] = -1;		// close trade
    			m_signal[i,1] = -1;		// close trade
    			Alert("Something is wrong, both trades open at the same time.");
    		 }
-		 else if ((~m_insideTradingHours[i]) && m_sequence[i][0]==1 && m_sequence[i][1]==1 && (m_state[i,0]==1 || m_state[i,1]==1)) {
+   		 else if ((~m_insideTradingHours[i]) && m_sequence[i][0]==1 && m_sequence[i][1]==1 && (m_state[i,0]==1 || m_state[i,1]==1)) {
    			// if outside trading hours and have two pending orders open and sequence has just started then close them.
-			m_signal[i,0] = -1;		// close trade
+			   m_signal[i,0] = -1;		// close trade
    			m_signal[i,1] = -1;		// close trade
    			Alert("Closing both pending orders: outside trading hours.");
-   		 }
+          }
    		 else {
    			// do nothing - normal operation
    			m_signal[i,0] = 0;		
@@ -582,6 +588,16 @@ if (i_count==0) {
       }
     }
  }
+ 
+ 
+ //rebase
+	      i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+	      m_openPrice[i][0] = NormalizeDouble(m_openPrice[i][0],i_digits);
+			m_openPrice[i][1] = NormalizeDouble(m_openPrice[i][1],i_digits);
+			m_stopLoss[i][0] = NormalizeDouble(m_stopLoss[i][0],i_digits);
+			m_stopLoss[i][1] = NormalizeDouble(m_stopLoss[i][1],i_digits);
+			m_takeProfit[i][0] = NormalizeDouble(m_takeProfit[i][0],i_digits);
+			m_takeProfit[i][1] = NormalizeDouble(m_takeProfit[i][1],i_digits);
 **/
  
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -597,6 +613,10 @@ if (i_count==0) {
    			else { Alert("Order deletion failed with error #", GetLastError()); }
    		}
    		// BUY: open the new pending order
+   		i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+	      m_openPrice[i][0] = NormalizeDouble(m_openPrice[i][0],i_digits);
+			m_stopLoss[i][0] = NormalizeDouble(m_stopLoss[i][0],i_digits);
+			m_takeProfit[i][0] = NormalizeDouble(m_takeProfit[i][0],i_digits);
    		Print("Attempt to open Buy. Waiting for response..",m_names[i],m_magicNumber[i,0]); 
    		m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),2);
    		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0],0));
@@ -619,6 +639,10 @@ if (i_count==0) {
 			else { Alert("Order deletion failed with error #", GetLastError()); }
 		}
 		// SELL: open the new pending order
+		i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+	      m_openPrice[i][1] = NormalizeDouble(m_openPrice[i][1],i_digits);
+			m_stopLoss[i][1] = NormalizeDouble(m_stopLoss[i][1],i_digits);
+			m_takeProfit[i][1] = NormalizeDouble(m_takeProfit[i][1],i_digits);
 		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
 	   	m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),2);
 		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1],0));
@@ -940,7 +964,7 @@ if (i_count==0) {
       For 1lot CC1CC2, 1pip is USD1/CC2USD 
       Then by simply saying for Cash(USD)/#pips how many lots, we can use the formula lots=Cash(USD)/#pips/Factor
       **/
-      double result;
+      double result=1.0;
       if (StringCompare(StringSubstr(symbol,0,3),AccountCurrency(),false)==0) {
           if (StringCompare(StringSubstr(symbol,3,3),"JPY",false)==0) {
               result = 100 / MarketInfo(symbol,MODE_BID); }
@@ -966,7 +990,7 @@ if (i_count==0) {
          }
       }
       return result;
-  }
+   }
   
   /**
   int labouchereLosses(int myMagicNumber,string symbol)
