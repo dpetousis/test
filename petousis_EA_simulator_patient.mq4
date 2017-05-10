@@ -199,6 +199,7 @@ int OnInit()
             for (int j=0;j<3;j++) {
                m_sequence[i][j] = temp_sequence[j];
             }
+            m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0);
          }
          else { PrintFormat("Cannot read open trade comment %s",m_names[i]); }
       }
@@ -213,11 +214,13 @@ int OnInit()
                for (int j=0;j<3;j++) {
                   m_sequence[i][j] = temp_sequence[j];
                }
+               m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0);
             }
             else {                                                         // sequence not ended but no new position for more than XXX bars, likely a stoploss, continue sequence but reset VWAP
                m_sequence[i][0] = -1.0;                                    // reset VWAP
                m_sequence[i][1] = temp_sequence[1];
                m_sequence[i][2] = temp_sequence[2];
+               m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0);
             }
          }
          else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
