@@ -331,7 +331,7 @@ f_time = Hour()+Minute()/60;
 for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
    
-   // Set trading hours flag
+   // Set trading hours flag - if 24h trading set 0,0,23,60
    m_insideTradingHours[i] = f_time>m_tradingHours[i][0] && f_time<m_tradingHours[i][1];
    
 	// BUY:
