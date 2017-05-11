@@ -332,12 +332,7 @@ for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
    
    // Set trading hours flag
-	if (m_tradingHours[i][0] < m_tradingHours[i][1]) {				// when not crossing midnight
-		m_insideTradingHours[i] = ~(f_time>m_tradingHours[i][0] && f_time<m_tradingHours[i][1]); 
-	}
-	else if (m_tradingHours[i][0] > m_tradingHours[i][1]) {			// when crossing midnight
-		m_insideTradingHours[i] = ~(f_time>m_tradingHours[i][0] || f_time<m_tradingHours[i][1]); 
-   }
+   m_insideTradingHours[i] = f_time>m_tradingHours[i][0] && f_time<m_tradingHours[i][1];
    
 	// BUY:
 	// if there is already a closed trade today and we hit TP -> sequence restart
