@@ -476,7 +476,7 @@ if (i_count==0) {
    			// if outside trading hours and have two pending orders open and sequence has just started then close them.
 			   m_signal[i,0] = -1;		// close trade
    			m_signal[i,1] = -1;		// close trade
-   			Alert("Closing both pending orders: outside trading hours.");
+   			Alert("Closing both pending orders for ", m_names[i],": outside trading hours.");
           }
    		 else {
    			// do nothing - normal operation
