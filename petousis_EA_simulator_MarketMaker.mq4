@@ -333,6 +333,7 @@ if (m_tradeFlag[i]==true) {
    
    // Set trading hours flag - if 24h trading set 0,0,23,60
    m_insideTradingHours[i] = f_time>m_tradingHours[i][0] && f_time<m_tradingHours[i][1];
+   if (m_insideTradingHours[i]==false) { Alert("Not inside trading hours for ",m_names[i],". Time is: ",f_time); }
    
 	// BUY:
 	// if there is already a closed trade today and we hit TP -> sequence restart
