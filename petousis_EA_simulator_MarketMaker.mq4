@@ -444,7 +444,7 @@ if (i_count==0) {
       		else { m_signal[i,1] = 0; }
       	  }
    	  else {
-   		 if (f_stddevCurr<m_stddevThreshold[i] && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
+   		 if (b_enter && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
    		   if (~m_insideTradingHours[i] && m_sequence[i][0]==1 && m_sequence[i][1]==1) {    // if outside of trading hours dont open new sequence
       			m_signal[i,0] = 0;		//do nothing
       			m_signal[i,1] = 0;		// do nothing
