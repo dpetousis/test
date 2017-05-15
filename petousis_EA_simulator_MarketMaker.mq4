@@ -984,12 +984,11 @@ if (i_count==0) {
       else { 
          int k = getName(StringSubstr(symbol,3,3),"USD");
          if (k>=0) {
-            if (StringCompare(m_names[k],"USDJPY",false)==0) {
-               result = 100 / MarketInfo(m_names[k],MODE_BID); }
-            else if (StringFind(m_names[k],"USD")==0) {
-               result = 1.0 / MarketInfo(m_names[k],MODE_BID); }
-            else if (StringFind(m_names[k],"USD")==3) {
-               result = MarketInfo(m_names[k],MODE_BID); } 
+	    if (StringFind(m_names[k],"USD")==0) {
+	    	if (StringFind(m_names[k],"USDJPY")>-1) { result = 100 / MarketInfo(m_names[k],MODE_BID); }
+		else { result = 1.0 / MarketInfo(m_names[k],MODE_BID); }
+	    }
+	    else if (StringFind(m_names[k],"USD")==3) { result = MarketInfo(m_names[k],MODE_BID); } 
          } 
          else {
             result = 1.0;       // not a currency
