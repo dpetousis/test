@@ -58,6 +58,8 @@ double m_rangeMin[];
 double m_stddev[];
 double m_stddevThreshold[];
 double m_tradingHours[][2]; // start,end in in double format h+m/60
+double m_lotDigits[];
+double m_lotMin[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -106,6 +108,8 @@ int OnInit()
    ArrayInitialize(m_stddev,0);
    ArrayInitialize(m_stddevThreshold,0);
    ArrayInitialize(m_tradingHours,0.0);
+   ArrayInitialize(m_lotDigits,0.0);
+   ArrayInitialize(m_lotMin,0.0);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -125,6 +129,8 @@ int OnInit()
    ArrayResize(m_stddev,i_stdevHistory,0);
    ArrayResize(m_stddevThreshold,i_namesNumber,0);
    ArrayResize(m_tradingHours,i_namesNumber,0);
+   ArrayResize(m_lotDigits,i_namesNumber,0);
+   ArrayResize(m_lotMin,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -142,6 +148,10 @@ int OnInit()
       // magic numbers
       m_magicNumber[i,0] = getMagicNumber(m_names[i],i_stratMagicNumber);
       m_magicNumber[i,1] = -1 * m_magicNumber[i,0];
+      // lot details
+      m_lotDigits[i] = MathMax(-MathLog10(MarketInfo(m_names[i],MODE_LOTSTEP)),0);
+      if (m_lotDigits[i]<0) { Alert("Lot digits calculation is wrong for ",m_names[i]); }
+      m_lotMin[i] = MarketInfo(m_names[i],MODE_MINLOT);
       // initialize m_accountCcyFactors
       m_accountCcyFactors[i] = accCcyFactor(m_names[i]); 
       /**
@@ -614,7 +624,7 @@ if (i_count==0) {
 			m_stopLoss[i][0] = NormalizeDouble(m_stopLoss[i][0],i_digits);
 			m_takeProfit[i][0] = NormalizeDouble(m_takeProfit[i][0],i_digits);
    		Print("Attempt to open Buy. Waiting for response..",m_names[i],m_magicNumber[i,0]); 
-   		m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),2);
+   		m_lots[i] = MathMax(m_lotMin[i],NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),m_lotDigits[i]));
    		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0],0));
    		i_ticketBuy=OrderSend(m_names[i],OP_BUYSTOP,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_magicNumber[i,0]); //Opening Buy
    		Print("OrderSend returned:",i_ticketBuy," Lots: ",m_lots[i]); 
@@ -640,7 +650,7 @@ if (i_count==0) {
 			m_stopLoss[i][1] = NormalizeDouble(m_stopLoss[i][1],i_digits);
 			m_takeProfit[i][1] = NormalizeDouble(m_takeProfit[i][1],i_digits);
 		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
-	   	m_lots[i] = NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),2);
+	   	m_lots[i] = MathMax(m_lotMin[i],NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),m_lotDigits[i]));
 		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1],0));
 	   	i_ticketSell=OrderSend(m_names[i],OP_SELLSTOP,m_lots[i],m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",i_ticketSell," Lots: ",m_lots[i]); 
