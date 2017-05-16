@@ -624,7 +624,7 @@ if (i_count==0) {
 			m_stopLoss[i][0] = NormalizeDouble(m_stopLoss[i][0],i_digits);
 			m_takeProfit[i][0] = NormalizeDouble(m_takeProfit[i][0],i_digits);
    		Print("Attempt to open Buy. Waiting for response..",m_names[i],m_magicNumber[i,0]); 
-   		m_lots[i] = MathMax(m_lotMin[i],NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),m_lotDigits[i]));
+		m_lots[i] = MathMax(m_lotMin[i],NormalizeDouble((m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]) * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),m_lotDigits[i]));
    		s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0],0));
    		i_ticketBuy=OrderSend(m_names[i],OP_BUYSTOP,m_lots[i],m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_magicNumber[i,0]); //Opening Buy
    		Print("OrderSend returned:",i_ticketBuy," Lots: ",m_lots[i]); 
