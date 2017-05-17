@@ -370,6 +370,7 @@ if (m_tradeFlag[i]==true) {
 			else {
 				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
 				else { m_state[i,0] = 1; }
+				f_runningCumLoss = f_runningCumLoss + m_profitInUSD[i]*(MathPow(2,m_sequence[i][0]-1) - 1);
 			}
 		}
 		else { Alert("Failed to select trade: ",m_ticket[i,0]); }
