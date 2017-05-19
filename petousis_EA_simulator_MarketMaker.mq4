@@ -892,7 +892,7 @@ if (i_count==0) {
       For 1lot USDJPY, 1pip is JPY100 so 100/USDJPY
       For 1lot XXXUSD 1pip is USD1 
       For 1lot XAUUSD 1pip is USD1 
-      For 1lot WTI 1pip is USD10 so 10
+      For 1lot WTI 1pip is USD1 so 1
       For 1lot CC1CC2, 1pip is USD1/USDCC2 
       For 1lot CC1JPY, 1pip is USD100/USDJPY 
       For 1lot CC1CC2, 1pip is USD1/CC2USD 
@@ -907,7 +907,10 @@ if (i_count==0) {
       else if (StringCompare(StringSubstr(symbol,3,3),AccountCurrency(),false)==0) {
               result = 1.0; }
       else if (StringCompare(StringSubstr(symbol,0,3),"WTI",false)==0) {
-            result = 10.0; 
+            result = 1.0; 
+         }
+      else if (StringCompare(StringSubstr(symbol,0,6),"SPX500",false)==0) {
+            result = 0.01; 
          }
       else { 
          int k = getName(StringSubstr(symbol,3,3),"USD");
