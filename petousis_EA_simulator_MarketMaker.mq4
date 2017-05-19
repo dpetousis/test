@@ -401,7 +401,7 @@ if (m_tradeFlag[i]==true) {
 	i_count = i_count + 1;		// count of products still live, if none then terminate EA
 	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
 	if ((m_sequence[i,0]==m_sequence[i,1]) && m_sequence[i,0]>1) {
-		f_liveSequenceLosses = f_liveSequenceLosses + m_pnlInUSD[i]*(MathPow(2,MathMin(i_cap,m_sequence[i][0]-1)) - 1 + MathMax(0,m_sequence[i][0]-1-i_cap)*MathPow(2,i_cap));
+		f_liveSequenceLosses = f_liveSequenceLosses + m_profitInUSD[i]*(MathPow(2,MathMin(i_cap,m_sequence[i][0]-1)) - 1 + MathMax(0,m_sequence[i][0]-1-i_cap)*MathPow(2,i_cap));
 	}
 }
 }
