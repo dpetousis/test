@@ -30,6 +30,7 @@
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches
 input string s_inputFileName = "TF_DEMO_MarketMaker.txt"; 
+string s_martingaleLossesFileName = "TF_DEMO_Marketmaker_Losses.txt";
 input int i_stratMagicNumber = 80;		// Always positive
 input int i_stdevHistory = 1500;
 input int i_maAveragingPeriod = 20;
@@ -64,7 +65,7 @@ double m_lotMin[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
-double f_sessionPNL=0.0;
+double f_sessionPNL=0.0,f_martingaleLosses=0.0;
 int i_namesNumber=0;
 int i_ordersHistoryTotal=OrdersHistoryTotal();
 
@@ -78,7 +79,8 @@ int OnInit()
    EventSetTimer(15);
    //Alert(Bars,"____",iBarShift(symb,timeFrame,TimeCurrent(),true));
    
-   // READ IN THE FILE
+   // READ IN THE FILES
+   // INPUT FILE
    string m_rows[7];       // name, trade Y/N, lots, sleep range start, sleep range end
    ushort u_sep=StringGetCharacter(",",0);
    int temp;
@@ -92,6 +94,14 @@ int OnInit()
    }
    else PrintFormat("Failed to open %s file, Error code = %d",s_inputFileName,GetLastError());
    i_namesNumber = ArraySize(arr);
+   // MARTINGALE LOSSES
+   filehandle=FileOpen(s_martingaleLossesFileName,FILE_READ|FILE_TXT);
+   if(filehandle!=INVALID_HANDLE) {
+      f_martingaleLosses = StringToDouble(FileReadString(filehandle));
+      FileClose(filehandle);
+      Print("FileOpen OK");
+   }
+   else PrintFormat("Failed to open %s file, Error code = %d",s_martingaleLossesFileName,GetLastError());
    
    // Initialize arrays
    ArrayInitialize(m_magicNumber,0);
@@ -249,6 +259,15 @@ void OnDeinit(const int reason)
       Print ("Win Ratio:",TesterStatistics(STAT_CUSTOM_ONTESTER));
    }
    
+   // MARTINGALE LOSSES
+   filehandle=FileOpen(s_martingaleLossesFileName,FILE_WRITE|FILE_TXT);
+   if(filehandle!=INVALID_HANDLE) {
+      FileWrite(filehandle,f_martingaleLosses);
+      FileClose(filehandle);
+      Print("FileOpen OK");
+   }
+   else PrintFormat("Failed to open %s file, Error code = %d, Martingale Losses are %d",s_martingaleLossesFileName,GetLastError(),f_martingaleLosses);
+   
    // TIMER KILL
    EventKillTimer();
    
@@ -380,7 +399,7 @@ if (m_tradeFlag[i]==true) {
 	i_count = i_count + 1;		// count of products still live, if none then terminate EA
 	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
 	if ((m_sequence[i,0]==m_sequence[i,1]) && m_sequence[i,0]>1) {
-		f_liveSequenceLosses = f_liveSequenceLosses + m_pnlInUSD[i]*(MathPow(2,m_sequence[i][0]-1) - 1);
+		f_liveSequenceLosses = f_liveSequenceLosses + m_pnlInUSD[i]*(MathPow(2,MathMin(i_cap,m_sequence[i][0]-1)) - 1 + MathMax(0,m_sequence[i][0]-1-i_cap)*MathPow(2,i_cap));
 	}
 }
 }
