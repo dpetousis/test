@@ -37,6 +37,7 @@ input int i_maAveragingPeriod = 20;
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
 int const f_bandsStdev = 4;
+int const i_cap = 3;
 //double const b_commission = 6*Point+10*Point;  // commission + safety net
 int const timeFrame=Period();        
 bool Work = true;             //EA will work
@@ -563,7 +564,7 @@ if (i_count==0) {
 			m_stopLoss[i][0] = NormalizeDouble(m_stopLoss[i][0],i_digits);
 			m_takeProfit[i][0] = NormalizeDouble(m_takeProfit[i][0],i_digits);
    		Print("Attempt to open Buy. Waiting for response..",m_names[i],m_magicNumber[i,0]); 
-   		temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
+   		temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
          s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0],0));
    		i_ticketBuy=OrderSend(m_names[i],OP_BUYSTOP,temp_lots,m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_magicNumber[i,0]); //Opening Buy
    		Print("OrderSend returned:",i_ticketBuy," Lots: ",temp_lots); 
@@ -589,7 +590,7 @@ if (i_count==0) {
 			m_stopLoss[i][1] = NormalizeDouble(m_stopLoss[i][1],i_digits);
 			m_takeProfit[i][1] = NormalizeDouble(m_takeProfit[i][1],i_digits);
 		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
-	   	temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(10,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
+	   	temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
       s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1],0));
 	   	i_ticketSell=OrderSend(m_names[i],OP_SELLSTOP,temp_lots,m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",i_ticketSell," Lots: ",temp_lots); 
