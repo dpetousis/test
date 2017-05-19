@@ -41,7 +41,7 @@ bool b_orderSizeByLabouchere = true;
 //bool b_safetyFactor = false;
 //bool b_writeToFile = false;
 bool b_sendEmail=false;
-input int i_stratMagicNumber = 34;    // Always positive
+input int i_stratMagicNumber = 38;    // Always positive
 // if 0,23 it trades nonstop
 int const i_hourStart = 0;       
 int const i_hourEnd = 23;
@@ -63,7 +63,7 @@ int const slippage =10;           // in points
 //double const b_commission = 6*Point+10*Point;  // commission + safety net
 //int const i_maxDrawdown = 10000;      // in USD max drawdown
 int const timeFrame=Period();        
-int count = 0,i_trade=0,i_previousVWAPZone=0,i_currentVWAPZone=0,i_labouchereLossesFirstBarInSequence=0,i_namesNumber=0;
+int count = 0,i_trade=0,i_previousVWAPZone=0,i_currentVWAPZone=0,i_namesNumber=0;
 bool Work = true;             //EA will work
 string const symb =Symbol();
 //double f_accountBalancePrev=0,f_sigmaY=0,f_sigmaX=0,f_meanY=0,f_meanX=0,f_safetyCounter=0;
@@ -79,6 +79,8 @@ double m_bollingerDeviationInPips[];
 bool m_tradeFlag[];
 double m_filter[][2];      // vwap,filter freq
 double m_profitInUSD[];
+int m_lotDigits[];
+double m_lotMin[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //int directionLastOpenedTrade=0; // 0:no trade yet, 1: buy, -1:sell
@@ -123,6 +125,8 @@ int OnInit()
    ArrayInitialize(m_tradeFlag,false);
    ArrayInitialize(m_filter,0.0);
    ArrayInitialize(m_profitInUSD,0.0);
+   ArrayInitialize(m_lotDigits,0.0);
+   ArrayInitialize(m_lotMin,0.0);
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
    ArrayResize(m_barLastOpenedTrade,i_namesNumber,0);
@@ -135,6 +139,8 @@ int OnInit()
    ArrayResize(m_tradeFlag,i_namesNumber,0);
    ArrayResize(m_filter,i_namesNumber,0);
    ArrayResize(m_profitInUSD,i_namesNumber,0);
+   ArrayResize(m_lotDigits,i_namesNumber,0);
+   ArrayResize(m_lotMin,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -153,7 +159,12 @@ int OnInit()
       else { PrintFormat("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
       m_myMagicNumber[i] = getMagicNumber(m_names[i],i_stratMagicNumber);
+      // lot details
+      m_lotDigits[i] = (int)MathMax(-MathLog10(MarketInfo(m_names[i],MODE_LOTSTEP)),0);
+      if (m_lotDigits[i]<0) { Alert("Lot digits calculation is wrong for ",m_names[i]); }
+      m_lotMin[i] = MarketInfo(m_names[i],MODE_MINLOT);
       // initialize m_accountCcyFactors
+      m_accountCcyFactors[i] = accCcyFactor(m_names[i]);
       /**
       This factor defines for 1lot of each product how many USD per pip:
       For 1lot USDXXX, 1pip is USD1/USDXXX 
@@ -165,7 +176,6 @@ int OnInit()
       For 1lot CC1JPY, 1pip is USD100/USDJPY 
       For 1lot CC1CC2, 1pip is USD1/CC2USD 
       Then by simply saying for Cash(USD)/#pips how many lots, we can use the formula lots=Cash(USD)/#pips/Factor
-      **/
       if (StringCompare(StringSubstr(m_names[i],0,3),AccountCurrency(),false)==0) {
           if (StringCompare(StringSubstr(m_names[i],3,3),"JPY",false)==0) {
               m_accountCcyFactors[i] = 100 / MarketInfo(m_names[i],MODE_BID); }
@@ -192,6 +202,7 @@ int OnInit()
             m_accountCcyFactors[i] = 1.0;       // not a currency
          }
       }
+      **/
       // initialize m_sequence  
       m_sequence[i][0] = -1.0;      //Initialize to -1,0,0      
       if (isPositionOpen(m_myMagicNumber[i],m_names[i])) {                                                       // check if trade open
@@ -704,7 +715,7 @@ if (b_lockIn) {
             ASK = MarketInfo(m_names[i],MODE_ASK);
             SL=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-            m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
+            m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],m_lotDigits[i]));
             Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
@@ -742,7 +753,7 @@ if (b_lockIn) {
             //ASK = MarketInfo(m_names[i],MODE_ASK);
             SL=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-            m_lots[i] = MathMax(0.01,NormalizeDouble((-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],2));
+            m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],m_lotDigits[i]));
             Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
@@ -1094,6 +1105,47 @@ if (b_lockIn) {
    return false;
   }
   
+  double accCcyFactor(string symbol)
+  {
+      // initialize m_accountCcyFactors
+      /**
+      This factor defines for 1lot of each product how many USD per pip:
+      For 1lot USDXXX, 1pip is USD1/USDXXX 
+      For 1lot USDJPY, 1pip is JPY100 so 100/USDJPY
+      For 1lot XXXUSD 1pip is USD1 
+      For 1lot XAUUSD 1pip is USD1 
+      For 1lot WTI 1pip is USD10 so 10
+      For 1lot CC1CC2, 1pip is USD1/USDCC2 
+      For 1lot CC1JPY, 1pip is USD100/USDJPY 
+      For 1lot CC1CC2, 1pip is USD1/CC2USD 
+      Then by simply saying for Cash(USD)/#pips how many lots, we can use the formula lots=Cash(USD)/#pips/Factor
+      **/
+      double result=1.0;
+      if (StringCompare(StringSubstr(symbol,0,3),AccountCurrency(),false)==0) {
+          if (StringCompare(StringSubstr(symbol,3,3),"JPY",false)==0) {
+              result = 100 / MarketInfo(symbol,MODE_BID); }
+          else { result = 1.0 / MarketInfo(symbol,MODE_BID); }
+      }
+      else if (StringCompare(StringSubstr(symbol,3,3),AccountCurrency(),false)==0) {
+              result = 1.0; }
+      else if (StringCompare(StringSubstr(symbol,0,3),"WTI",false)==0) {
+            result = 10.0; 
+         }
+      else { 
+         int k = getName(StringSubstr(symbol,3,3),"USD");
+         if (k>=0) {
+            if (StringFind(m_names[k],"USD")==0) {
+	    	      if (StringFind(m_names[k],"USDJPY")>-1) { result = 100 / MarketInfo(m_names[k],MODE_BID); }
+		         else { result = 1.0 / MarketInfo(m_names[k],MODE_BID); }
+	         }
+            else if (StringFind(m_names[k],"USD")==3) { result = MarketInfo(m_names[k],MODE_BID); } 
+         } 
+         else {
+            result = 1.0;       // not a currency
+         }
+      }
+      return result;
+}
   
   /**
   int labouchereLosses(int myMagicNumber,string symbol)
