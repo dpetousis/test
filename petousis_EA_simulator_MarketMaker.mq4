@@ -64,7 +64,7 @@ double m_lotMin[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
-double f_pnlInUSD=0.0;
+double f_sessionPNL=0.0;
 int i_namesNumber=0;
 int i_ordersHistoryTotal=OrdersHistoryTotal();
 
@@ -269,7 +269,7 @@ void OnTimer() //void OnTick()
    i_win=0,i_loss=0,i_count=0;
    bool res,isNewBar,success,b_enter=false;
    double
-   f_weightedLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,f_time=0.0,temp_lots=0.0,
+   f_liveSequenceLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,f_time=0.0,temp_lots=0.0,
    f_low,f_high,f_SR=0;
    int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending
    bool m_openBuy[];
@@ -337,7 +337,7 @@ if (m_tradeFlag[i]==true) {
 				m_state[i,0] = 0;
 				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][0] = 0;	// reset ticket
-				f_pnlInUSD = NormalizeDouble(f_pnlInUSD + f_orderProfit,2);
+				f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2);
 			}
 			else {
 				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
@@ -366,7 +366,7 @@ if (m_tradeFlag[i]==true) {
 				m_state[i,1] = 0;
 				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][1] = 0;	// reset ticket
-				f_pnlInUSD = NormalizeDouble(f_pnlInUSD + f_orderProfit,2);
+				f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2);
 			}
 			else {
 				if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
@@ -376,10 +376,12 @@ if (m_tradeFlag[i]==true) {
 		else { Alert("Failed to select trade: ",m_ticket[i,1]); }
 	}
 
-	// checks
+	// checks & balances
 	i_count = i_count + 1;		// count of products still live, if none then terminate EA
 	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
-
+	if ((m_sequence[i,0]==m_sequence[i,1]) && m_sequence[i,0]>1) {
+		f_liveSequenceLosses = f_liveSequenceLosses + m_pnlInUSD[i]*(MathPow(2,m_sequence[i][0]-1) - 1);
+	}
 }
 }
 
@@ -619,7 +621,8 @@ if (i_count==0) {
    
    // PnL Alert
    if (Minute()==0) {
-      Alert("PnL: ",f_pnlInUSD," USD");
+      Alert("Session PnL: ",f_sessionPNL," USD");
+      Alert("Total live sequence losses: ",f_liveSequenceLosses," USD");
    }
    
    // measure execution time
