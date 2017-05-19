@@ -62,6 +62,7 @@ double m_stddevThreshold[];
 double m_tradingHours[][2]; // start,end in in double format h+m/60
 int m_lotDigits[];
 double m_lotMin[];
+double m_profitAdjustment[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -122,6 +123,7 @@ int OnInit()
    ArrayInitialize(m_tradingHours,0.0);
    ArrayInitialize(m_lotDigits,0.0);
    ArrayInitialize(m_lotMin,0.0);
+   ArrayInitialize(m_profitAdjustment,0.0);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -143,6 +145,7 @@ int OnInit()
    ArrayResize(m_tradingHours,i_namesNumber,0);
    ArrayResize(m_lotDigits,i_namesNumber,0);
    ArrayResize(m_lotMin,i_namesNumber,0);
+   ArrayResize(m_profitAdjustment,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
    
       // m_names array
@@ -344,6 +347,11 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
 				f_orderProfit = OrderProfit();
+				// This adds profit from trades that have not breached the cap to martingale losses
+				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
+					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+				}
+				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
 					m_sequence[i][0] = 1; 
@@ -356,7 +364,9 @@ if (m_tradeFlag[i]==true) {
 				m_state[i,0] = 0;
 				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][0] = 0;	// reset ticket
+				// session PnL update
 				if (f_orderProfit<>0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
+				// if sequence exceeds cap, add the loss to the martingale losses
 				if (m_sequence[i][0]-1>i_cap || m_sequence[i][0]==1) { 
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
@@ -368,6 +378,9 @@ if (m_tradeFlag[i]==true) {
 		}
 		else { Alert("Failed to select trade: ",m_ticket[i,0]); }
 	}
+	else {
+		m_profitAdjustment[i] = -1 * f_martingaleLosses/(i_namesNumber-1);
+	}
 
 	// SELL: 
 	// if there is already a closed trade today and we hit TP -> done for the day
@@ -376,6 +389,11 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {					// if closed
 				f_orderProfit = OrderProfit();
+				// This adds profit from trades that have not breached the cap to martingale losses
+				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
+					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+				}
+				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
 					m_sequence[i][0] = 1; 
@@ -388,7 +406,9 @@ if (m_tradeFlag[i]==true) {
 				m_state[i,1] = 0;
 				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][1] = 0;	// reset ticket
+				// session PnL update
 				if (f_orderProfit<>0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
+				// if sequence exceeds cap, add the loss to the martingale losses
 				if (m_sequence[i][0]-1>i_cap || m_sequence[i][0]==1) { 
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
@@ -399,6 +419,9 @@ if (m_tradeFlag[i]==true) {
 			}
 		}
 		else { Alert("Failed to select trade: ",m_ticket[i,1]); }
+	}
+	else {
+		m_profitAdjustment[i] = -1 * f_martingaleLosses/(i_namesNumber-1);
 	}
 
 	// checks & balances
