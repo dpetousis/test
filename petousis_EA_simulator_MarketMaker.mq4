@@ -38,7 +38,6 @@ input int i_maAveragingPeriod = 20;
 int const slippage =10;           // in points
 int const f_bandsStdev = 4;
 int const i_cap = 3;
-double const f_betSize = 10; 	//in USD
 //double const b_commission = 6*Point+10*Point;  // commission + safety net
 int const timeFrame=Period();        
 bool Work = true;             //EA will work
@@ -143,7 +142,7 @@ int OnInit()
          if (StringCompare(m_rows[1],"Y",false)==0) {
             m_tradeFlag[i] = true;
          }
-         //m_profitInUSD[i] = StringToDouble(m_rows[2]);
+         m_profitInUSD[i] = StringToDouble(m_rows[2]);
 	      m_rangeMin[i] = StringToDouble(m_rows[3]);
 	      m_tradingHours[i][0] = StringToDouble(m_rows[4]) + StringToDouble(m_rows[5])/60;
          m_tradingHours[i][1] = StringToDouble(m_rows[6]) + StringToDouble(m_rows[7])/60;
@@ -416,7 +415,7 @@ if (i_count==0) {
       			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
       			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
       			m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
-			if (m_lots[i]<=m_lotMin[i]) { m_profitInUSD[i] = NormalizeDouble(m_profitInUSD[i] * m_lotMin[i] / (m_profitInUSD[i]/m_accountCcyFactors[i]/m_pips[i]),2); }
+			//if (m_lots[i]<=m_lotMin[i]) { m_profitInUSD[i] = NormalizeDouble(m_profitInUSD[i] * m_lotMin[i] / (m_profitInUSD[i]/m_accountCcyFactors[i]/m_pips[i]),2); }
       	      }
       	  }
 	  
