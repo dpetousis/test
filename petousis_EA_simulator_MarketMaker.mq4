@@ -428,7 +428,7 @@ if (m_tradeFlag[i]==true) {
 	i_count = i_count + 1;		// count of products still live, if none then terminate EA
 	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
 	if ((m_sequence[i,0]==m_sequence[i,1]) && m_sequence[i,0]>1) {
-		f_liveSequenceLosses = f_liveSequenceLosses + m_profitInUSD[i]*(MathPow(2,MathMin(i_cap,m_sequence[i][0]-1)) - 1 + MathMax(0,m_sequence[i][0]-1-i_cap)*MathPow(2,i_cap));
+		f_liveSequenceLosses = f_liveSequenceLosses + (m_profitInUSD[i]+m_profitAdjustment[i])*(MathPow(2,MathMin(i_cap,m_sequence[i][0]-1)) - 1 + MathMax(0,m_sequence[i][0]-1-i_cap)*MathPow(2,i_cap));
 	}
 }
 }
@@ -462,9 +462,8 @@ if (i_count==0) {
       			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
       			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
       			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
-      			m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],m_profitInUSD[i] / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
-			//if (m_lots[i]<=m_lotMin[i]) { m_profitInUSD[i] = NormalizeDouble(m_profitInUSD[i] * m_lotMin[i] / (m_profitInUSD[i]/m_accountCcyFactors[i]/m_pips[i]),2); }
-      	      }
+      			m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
+     	      }
       	  }
 	  
 	      
@@ -622,7 +621,7 @@ if (i_count==0) {
    		if (i_ticketBuy < 0)  {                  // Success :)   
    			Alert("OrderSend ",m_names[i]," failed with error #", GetLastError());
                      	Alert("Open: ",m_openPrice[i,0],". SL: ",m_stopLoss[i,0],". TP: ",m_takeProfit[i,0]);
-                     	Alert("Loss#: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_pips[i]);
+                     	Alert("Loss#: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i]+m_profitAdjustment[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_pips[i]);
    		}
    		else {
    			Alert ("Opened pending order Buy:",i_ticketBuy,",Symbol:",m_names[i]," Lots:",temp_lots);
@@ -648,7 +647,7 @@ if (i_count==0) {
 		if (i_ticketSell < 0)     {                 // Success :)
 		  Alert("OrderSend ",m_names[i]," failed with error #", GetLastError());
 		  Alert("Open: ",m_openPrice[i,1],". SL: ",m_stopLoss[i,1],". TP: ",m_takeProfit[i,1]);
-                  Alert("Loss#: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_pips[i]);
+                  Alert("Loss#: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i]+m_profitAdjustment[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_pips[i]);
 		}
 		else {
 		  Alert ("Opened pending order Sell ",i_ticketSell,",Symbol:",m_names[i]," Lots:",temp_lots);
