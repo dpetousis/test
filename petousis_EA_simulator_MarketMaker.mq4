@@ -351,6 +351,10 @@ if (m_tradeFlag[i]==true) {
 				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
+				// if sequence exceeds cap, add the loss to the martingale losses
+				else if (f_orderProfit<0 && m_sequence[i][0]-1>i_cap) {
+					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
+				}
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
@@ -366,10 +370,6 @@ if (m_tradeFlag[i]==true) {
 				m_ticket[i][0] = 0;	// reset ticket
 				// session PnL update
 				if (f_orderProfit<>0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
-				// if sequence exceeds cap, add the loss to the martingale losses
-				if (m_sequence[i][0]-1>i_cap || m_sequence[i][0]==1) { 
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
-				}
 			}
 			else {
 				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
@@ -393,6 +393,10 @@ if (m_tradeFlag[i]==true) {
 				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
+				// if sequence exceeds cap, add the loss to the martingale losses
+				else if (f_orderProfit<0 && m_sequence[i][0]-1>i_cap) {
+					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
+				}
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
@@ -408,10 +412,6 @@ if (m_tradeFlag[i]==true) {
 				m_ticket[i][1] = 0;	// reset ticket
 				// session PnL update
 				if (f_orderProfit<>0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
-				// if sequence exceeds cap, add the loss to the martingale losses
-				if (m_sequence[i][0]-1>i_cap || m_sequence[i][0]==1) { 
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
-				}
 			}
 			else {
 				if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
