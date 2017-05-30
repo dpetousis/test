@@ -34,6 +34,7 @@ string s_martingaleLossesFileName = "TF_DEMO_Marketmaker_Losses.txt";
 input int i_stratMagicNumber = 80;		// Always positive
 input int i_stdevHistory = 1500;
 input int i_maAveragingPeriod = 20;
+input double f_openNewTrades = 1.0; // 1:yes, -1:No
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
@@ -79,6 +80,10 @@ int OnInit()
    // TIMER FREQUENCY - APPARENTLY NO SERVER CONTACT FOR MORE THAN 30SEC WILL CAUSE REAUTHENTICATION ADDING CONSIDERABLE DELAY, SO THEREFORE USE 15SEC INTERVAL
    EventSetTimer(15);
    //Alert(Bars,"____",iBarShift(symb,timeFrame,TimeCurrent(),true));
+   
+   // Global variable so that you can stop opening new sequences anytime
+   datetime dt = GlobalVariableSet("MM_OPEN_NEW_TRADES",f_openNewTrades);
+   if (dt==0) { Alert("Failed to set the global variable."); }
    
    // READ IN THE FILES
    // INPUT FILE
@@ -450,6 +455,7 @@ if (i_count==0) {
       	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
       	      f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
       	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]);
+	      b_enter = (b_enter) && (GlobalVariableGet("MM_OPEN_NEW_TRADES")>0);
             	      if (b_enter) {
       			// Then calculate all trade components for the sequence
       			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
