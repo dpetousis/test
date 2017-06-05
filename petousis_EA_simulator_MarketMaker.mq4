@@ -12,6 +12,7 @@
 //#include <OTMql4/OTLibPyLog.mqh>
 //#include <OTMql4/OTLibPy27.mqh>
 //#include <WinUser32.mqh>
+//#include <petousisLib.mqh>
 
 // Run in command window
 //#import "shell32.dll"
@@ -31,16 +32,15 @@
 //input switches
 input string s_inputFileName = "TF_DEMO_MarketMaker.txt"; 
 string s_martingaleLossesFileName = "TF_DEMO_Marketmaker_Losses.txt";
-input int i_stratMagicNumber = 80;		// Always positive
+input int i_stratMagicNumber = 82;		// Always positive
 input int i_stdevHistory = 1500;
 input int i_maAveragingPeriod = 20;
-extern bool b_openNewTrades = true; // extern variables can be changed during execution
+extern bool b_enterNewSequences = true;
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
-int const f_bandsStdev = 4;
+int const f_bandsStdev = 5;
 int const i_cap = 3;
-//double const b_commission = 6*Point+10*Point;  // commission + safety net
 int const timeFrame=Period();        
 bool Work = true;             //EA will work
 string const symb =Symbol();
@@ -68,7 +68,7 @@ double m_profitAdjustment[];
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
 double f_sessionPNL=0.0,f_martingaleLosses=0.0;
-int i_namesNumber=0;
+int i_namesNumber=0,i_numberLiveProducts=0;
 int i_ordersHistoryTotal=OrdersHistoryTotal();
 
 //+------------------------------------------------------------------+
@@ -87,7 +87,7 @@ int OnInit()
    ushort u_sep=StringGetCharacter(",",0);
    int temp;
    string arr[];
-   double commentArr[6];
+   double commentArr[7];
    int filehandle=FileOpen(s_inputFileName,FILE_READ|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
       FileReadArray(filehandle,arr);
@@ -205,13 +205,23 @@ int OnInit()
       	m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][1]-1),m_lotDigits[i]);
       	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
+      
+      // count of products still live, if none then terminate EA
+      if (m_tradeFlag[i]) { i_numberLiveProducts = i_numberLiveProducts + 1; }
+      			
+   }
+   
+   // TERMINATE EA IF NO PRODUCTS ARE LIVE ///////////////////////////////////////////////////////////////////////////////////////////////
+   if (i_numberLiveProducts==0) { 
+   	ExpertRemove(); 
+   	Alert("EA removed because no products are live");
    }
    
    // write to file
    filehandle=FileOpen("STDEV_THRESHOLDS.txt",FILE_WRITE|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
       for(int i=0; i<i_namesNumber; i++) {
-	FileWrite(filehandle,m_names[i],m_stddevThreshold[i]);
+	FileWrite(filehandle,m_names[i],"_:_",m_stddevThreshold[i]);
       }
       FileClose(filehandle);
    }
@@ -264,7 +274,7 @@ void OnDeinit(const int reason)
    }
    
    // MARTINGALE LOSSES
-   filehandle=FileOpen(s_martingaleLossesFileName,FILE_WRITE|FILE_TXT);
+   int filehandle=FileOpen(s_martingaleLossesFileName,FILE_WRITE|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
       FileWrite(filehandle,f_martingaleLosses);
       FileClose(filehandle);
@@ -283,13 +293,13 @@ void OnDeinit(const int reason)
 void OnTimer() //void OnTick()
   {
   
-  
+   uint start=GetTickCount();
   
 
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
    i_ticketPending=-1,i_ticketSell,i_ticketBuy,i_digits,
-   i_win=0,i_loss=0,i_count=0;
+   i_win=0,i_loss=0;
    bool res,isNewBar,success,b_enter=false;
    double
    f_liveSequenceLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,f_time=0.0,temp_lots=0.0,
@@ -301,7 +311,7 @@ void OnTimer() //void OnTick()
    bool m_closeSell[];
    bool m_sequenceEndedFlag[];
    bool m_insideTradingHours[];
-   string s_comment,s_orderSymbol;
+   string s_comment,s_orderSymbol,s_liveSequenceLosses;
    double temp_sequence[2];
    
 // PRELIMINARY PROCESSING ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -333,13 +343,12 @@ void OnTimer() //void OnTick()
      }
 
 // UPDATE STATUS	///////////////////////////////////////////////////////////////////////////////////////////////////////////
-f_time = Hour()+Minute()/60;
+f_time = double(Hour())+double(Minute())/60;
 for(int i=0; i<i_namesNumber; i++) {
 if (m_tradeFlag[i]==true) {
    
    // Set trading hours flag - if 24h trading set 0,0,23,60
-   m_insideTradingHours[i] = f_time>m_tradingHours[i][0] && f_time<m_tradingHours[i][1];
-   if (m_insideTradingHours[i]==false) { Alert("Not inside trading hours for ",m_names[i],". Time is: ",f_time); }
+   m_insideTradingHours[i] = f_time>=m_tradingHours[i][0] && f_time<m_tradingHours[i][1];
    
 	// BUY:
 	// if there is already a closed trade today and we hit TP -> sequence restart
@@ -355,7 +364,7 @@ if (m_tradeFlag[i]==true) {
 				// if sequence exceeds cap, add the loss to the martingale losses
 				else if (f_orderProfit<0 && m_sequence[i][0]-1>i_cap) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
-				}
+            }
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
@@ -367,10 +376,10 @@ if (m_tradeFlag[i]==true) {
 					m_sequence[i][1] = m_sequence[i][1] + 1;
 				}
 				m_state[i,0] = 0;
-				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
+				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Sequence Complete? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][0] = 0;	// reset ticket
 				// session PnL update
-				if (f_orderProfit<>0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
+				if (f_orderProfit!=0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
 			}
 			else {
 				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
@@ -380,7 +389,7 @@ if (m_tradeFlag[i]==true) {
 		else { Alert("Failed to select trade: ",m_ticket[i,0]); }
 	}
 	else {
-		m_profitAdjustment[i] = -1 * f_martingaleLosses/(i_namesNumber-1);
+		m_profitAdjustment[i] = -1 * f_martingaleLosses/(i_numberLiveProducts-1);
 	}
 
 	// SELL: 
@@ -397,7 +406,7 @@ if (m_tradeFlag[i]==true) {
 				// if sequence exceeds cap, add the loss to the martingale losses
 				else if (f_orderProfit<0 && m_sequence[i][0]-1>i_cap) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
-				}
+            }
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
@@ -409,10 +418,10 @@ if (m_tradeFlag[i]==true) {
 					m_sequence[i][1] = m_sequence[i][1] + 1;
 				}
 				m_state[i,1] = 0;
-				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Done for the day? ",m_sequenceEndedFlag[i]);
+				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Sequence Complete? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][1] = 0;	// reset ticket
 				// session PnL update
-				if (f_orderProfit<>0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
+				if (f_orderProfit!=0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
 			}
 			else {
 				if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
@@ -422,23 +431,18 @@ if (m_tradeFlag[i]==true) {
 		else { Alert("Failed to select trade: ",m_ticket[i,1]); }
 	}
 	else {
-		m_profitAdjustment[i] = -1 * f_martingaleLosses/(i_namesNumber-1);
+		m_profitAdjustment[i] = -1 * f_martingaleLosses/(i_numberLiveProducts-1);
 	}
 
 	// checks & balances
-	i_count = i_count + 1;		// count of products still live, if none then terminate EA
 	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
+	/**
 	if ((m_sequence[i,0]==m_sequence[i,1]) && m_sequence[i,0]>1) {
 		f_liveSequenceLosses = f_liveSequenceLosses + (m_profitInUSD[i]+m_profitAdjustment[i])*(MathPow(2,MathMin(i_cap,m_sequence[i][0]-1)) - 1 + MathMax(0,m_sequence[i][0]-1-i_cap)*MathPow(2,i_cap));
 		s_liveSequenceLosses = StringConcatenate(s_liveSequenceLosses,"_",m_names[i]);
 	}
+	**/
 }
-}
-
-// TERMINATE EA IF NO PRODUCTS ARE LIVE ///////////////////////////////////////////////////////////////////////////////////////////////
-if (i_count==0) { 
-	ExpertRemove(); 
-	Alert("EA removed because no products are live");
 }
 
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -449,23 +453,27 @@ if (i_count==0) {
       	 // When not in sequence, check for signal to enter
       	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0) {
       	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
-      	      f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
-      	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_openNewTrades);
-            	      if (b_enter) {
-      			// Then calculate all trade components for the sequence
-      			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
-      			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
-      			f_SR = MathMax(MathMax((f_high - f_low)/2,m_rangeMin[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
-      			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
-      			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
-      			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
-      			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
-      			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR,i_digits);
-      			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
-      			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
-      			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
-      			m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
-     	      }
+      	      //f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
+      	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // && (f_stddevCurrPrev>m_stddevThreshold[i])
+      	      if ((f_stddevCurr<m_stddevThreshold[i]) && (b_enterNewSequences) && (b_enter==false)) {               // && (f_stddevCurrPrev>m_stddevThreshold[i])
+      	         Alert("Order not placed because not inside trading hours for ",m_names[i],". Time is: ",f_time); 
+      	      }
+            	if (b_enter) {
+         			// Then calculate all trade components for the sequence
+         			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
+         			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
+         			f_SR = MathMax(MathMax((f_high - f_low)/2,m_rangeMin[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
+         			Alert("STOPLEVEL for ",m_names[i]," is: ",MarketInfo(m_names[i],MODE_STOPLEVEL));
+         			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
+         			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+         			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
+         			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
+         			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR,i_digits);
+         			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
+         			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
+         			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
+         			m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
+     	         }
       	  }
 	  
 	      
@@ -483,14 +491,8 @@ if (i_count==0) {
       	  }
    	  else {
    		 if (b_enter && m_state[i,0]==0 && m_state[i,1]==0) {		// should be the starting point -- open two pending orders
-   		   if (!m_insideTradingHours[i] && m_sequence[i][0]==1 && m_sequence[i][1]==1) {    // if outside of trading hours dont open new sequence
-      			m_signal[i,0] = 0;		//do nothing
-      			m_signal[i,1] = 0;		// do nothing
-      		}
-   			else {
    			   m_signal[i,0] = 1;		//open pending
    			   m_signal[i,1] = 1;		// open pending
-   			}
    		 }
    		 else if (m_state[i,0]==0 && m_state[i,1]==1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
    			m_signal[i,0] = 1;		// open pending
@@ -670,17 +672,17 @@ if (i_count==0) {
    
    
    // PnL Alert
-   if (Minute()==0) {
-      Alert("Session PnL: ",f_sessionPNL," USD");
-      Alert("Total live sequence losses: ",f_liveSequenceLosses," USD");
-      Alert("Live sequences with losses: ",s_liveSequenceLosses);
-      Alert("Total Martingale losses: ",f_martingaleLosses," USD");
+   if (Seconds()<=15) {
+      Alert("Session PnL: ",f_sessionPNL,". Total Martingale losses: ",f_martingaleLosses);
+      //Alert("Total live sequence losses: ",f_liveSequenceLosses," USD");
+      //Alert("Live sequences with losses: ",s_liveSequenceLosses);
+      //Alert("Total Martingale losses: ",f_martingaleLosses," USD");
    }
    
    // measure execution time
-   //uint time=GetTickCount()-start;
+   uint time=GetTickCount()-start;
    //Print("This run took:",time,"msec");
-     
+   
    return;                                      // exit start()
   } // on timer loop
   
@@ -961,7 +963,7 @@ if (i_count==0) {
             result = 1.0; 
          }
       else if (StringCompare(StringSubstr(symbol,0,6),"SPX500",false)==0) {
-            result = 0.01; 
+            result = 0.1; 
          }
       else { 
          int k = getName(StringSubstr(symbol,3,3),"USD");
