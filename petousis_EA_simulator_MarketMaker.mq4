@@ -36,6 +36,7 @@ input int i_stratMagicNumber = 82;		// Always positive
 input int i_stdevHistory = 1500;
 input int i_maAveragingPeriod = 20;
 extern bool b_enterNewSequences = true;
+input bool b_multipleSequences = false;
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
@@ -192,7 +193,12 @@ int OnInit()
       	m_takeProfit[i][0] = commentArr[3];
       	m_stopLoss[i][0] = commentArr[4];
       	m_openPrice[i][0] = commentArr[5];
-      	m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][0]-1),m_lotDigits[i]);
+	if (b_multipleSequences) {
+		
+	}
+	else {
+      		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][0]-1),m_lotDigits[i]);
+	}
       	m_pips[i] = NormalizeDouble((m_takeProfit[i][0]-m_openPrice[i,0]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
       if (readTradeComment(m_magicNumber[i,1],m_names[i],commentArr)==true) {		// SELL
