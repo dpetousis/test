@@ -356,13 +356,13 @@ if (m_tradeFlag[i]==true) {
 		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
-				f_orderProfit = OrderProfit();
+				f_orderProfit = OrderProfit() + OrderCommission() + OrderSwap();
 				// This adds profit from trades that have not breached the cap to martingale losses
 				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
 				// if sequence exceeds cap, add the loss to the martingale losses
-				else if (f_orderProfit<0 && m_sequence[i][0]-1>i_cap) {
+				else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
             }
 				// update state, sequence and ticket
@@ -376,7 +376,7 @@ if (m_tradeFlag[i]==true) {
 					m_sequence[i][1] = m_sequence[i][1] + 1;
 				}
 				m_state[i,0] = 0;
-				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",OrderProfit(),". Sequence Complete? ",m_sequenceEndedFlag[i]);
+				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",f_orderProfit,". Sequence Complete? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][0] = 0;	// reset ticket
 				// session PnL update
 				if (f_orderProfit!=0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
@@ -398,13 +398,13 @@ if (m_tradeFlag[i]==true) {
 		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
 		if (res) {
 			if (OrderCloseTime()>0) {					// if closed
-				f_orderProfit = OrderProfit();
+				f_orderProfit = OrderProfit() + OrderCommission() + OrderSwap();
 				// This adds profit from trades that have not breached the cap to martingale losses
 				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
 				// if sequence exceeds cap, add the loss to the martingale losses
-				else if (f_orderProfit<0 && m_sequence[i][0]-1>i_cap) {
+				else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
             }
 				// update state, sequence and ticket
@@ -418,7 +418,7 @@ if (m_tradeFlag[i]==true) {
 					m_sequence[i][1] = m_sequence[i][1] + 1;
 				}
 				m_state[i,1] = 0;
-				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",OrderProfit(),". Sequence Complete? ",m_sequenceEndedFlag[i]);
+				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",f_orderProfit,". Sequence Complete? ",m_sequenceEndedFlag[i]);
 				m_ticket[i][1] = 0;	// reset ticket
 				// session PnL update
 				if (f_orderProfit!=0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
