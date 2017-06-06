@@ -194,7 +194,7 @@ int OnInit()
       	m_stopLoss[i][0] = commentArr[4];
       	m_openPrice[i][0] = commentArr[5];
 	if (b_multipleSequences) {
-		
+		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,MathMod(m_sequence[i][0]-1,i_cap)),m_lotDigits[i]);
 	}
 	else {
       		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][0]-1),m_lotDigits[i]);
@@ -208,7 +208,12 @@ int OnInit()
       	m_takeProfit[i][1] = commentArr[3];
       	m_stopLoss[i][1] = commentArr[4];
       	m_openPrice[i][1] = commentArr[5];
-      	m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][1]-1),m_lotDigits[i]);
+	if (b_multipleSequences) {
+		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,MathMod(m_sequence[i][1]-1,i_cap)),m_lotDigits[i]);
+	}
+	else {
+      		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][1]-1),m_lotDigits[i]);
+	}
       	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
       
@@ -624,7 +629,12 @@ if (m_tradeFlag[i]==true) {
 			m_stopLoss[i][0] = NormalizeDouble(m_stopLoss[i][0],i_digits);
 			m_takeProfit[i][0] = NormalizeDouble(m_takeProfit[i][0],i_digits);
    		Print("Attempt to open Buy. Waiting for response..",m_names[i],m_magicNumber[i,0]); 
-   		temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
+		if (b_multipleSequences) {
+			temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMod((double)m_sequence[i,0]-1,i_cap)),m_lotDigits[i]);
+		}
+		else {
+   			temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,0]-1)),m_lotDigits[i]);
+		}
          s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_sequence[i,0],0));
    		i_ticketBuy=OrderSend(m_names[i],OP_BUYSTOP,temp_lots,m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_magicNumber[i,0]); //Opening Buy
    		Print("OrderSend returned:",i_ticketBuy," Lots: ",temp_lots); 
@@ -650,7 +660,12 @@ if (m_tradeFlag[i]==true) {
 			m_stopLoss[i][1] = NormalizeDouble(m_stopLoss[i][1],i_digits);
 			m_takeProfit[i][1] = NormalizeDouble(m_takeProfit[i][1],i_digits);
 		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
-	   	temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
+		if (b_multipleSequences) {
+			temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMod((double)m_sequence[i,1]-1,i_cap)),m_lotDigits[i]);
+		}
+		else {
+	   		temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
+		}
       s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_sequence[i,1],0));
 	   	i_ticketSell=OrderSend(m_names[i],OP_SELLSTOP,temp_lots,m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",i_ticketSell," Lots: ",temp_lots); 
@@ -934,6 +949,7 @@ if (m_tradeFlag[i]==true) {
 	       output[3] = OrderTakeProfit();		// TP
 	       output[4] = OrderStopLoss();		// SL
 	       output[5] = OrderOpenPrice();		// open price
+	       output[6] = OrderLots();			// lots
 	       flag = true;
 	       if (flag==true) { break; }
 	      }
