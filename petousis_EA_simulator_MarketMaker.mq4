@@ -63,6 +63,7 @@ double m_stddev[];
 double m_stddevThreshold[];
 double m_tradingHours[][2]; // start,end in in double format h+m/60
 int m_lotDigits[];
+int m_commissionInPips[];
 double m_lotMin[];
 double m_profitAdjustment[];
 
@@ -84,7 +85,7 @@ int OnInit()
    
    // READ IN THE FILES
    // INPUT FILE
-   string m_rows[7];       // name, trade Y/N, lots, sleep range start, sleep range end
+   string m_rows[8];       // name, trade Y/N, lots, sleep range start, sleep range end, commission
    ushort u_sep=StringGetCharacter(",",0);
    int temp;
    string arr[];
@@ -124,6 +125,7 @@ int OnInit()
    ArrayInitialize(m_stddevThreshold,0);
    ArrayInitialize(m_tradingHours,0.0);
    ArrayInitialize(m_lotDigits,0.0);
+   ArrayInitialize(m_commissionInPips,0);
    ArrayInitialize(m_lotMin,0.0);
    ArrayInitialize(m_profitAdjustment,0.0);
    
@@ -146,6 +148,7 @@ int OnInit()
    ArrayResize(m_stddevThreshold,i_namesNumber,0);
    ArrayResize(m_tradingHours,i_namesNumber,0);
    ArrayResize(m_lotDigits,i_namesNumber,0);
+   ArrayResize(m_commissionInPips,i_namesNumber,0);
    ArrayResize(m_lotMin,i_namesNumber,0);
    ArrayResize(m_profitAdjustment,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
@@ -158,9 +161,10 @@ int OnInit()
             m_tradeFlag[i] = true;
          }
          m_profitInUSD[i] = StringToDouble(m_rows[2]);
-	      m_rangeMin[i] = StringToDouble(m_rows[3]);
-	      m_tradingHours[i][0] = StringToDouble(m_rows[4]) + StringToDouble(m_rows[5])/60;
+	 m_rangeMin[i] = StringToDouble(m_rows[3]);
+	 m_tradingHours[i][0] = StringToDouble(m_rows[4]) + StringToDouble(m_rows[5])/60;
          m_tradingHours[i][1] = StringToDouble(m_rows[6]) + StringToDouble(m_rows[7])/60;
+	 m_commissionInPips[i] = StringToInteger(m_rows[8]);
       }
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       
