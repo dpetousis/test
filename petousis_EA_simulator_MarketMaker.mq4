@@ -63,7 +63,7 @@ double m_stddev[];
 double m_stddevThreshold[];
 double m_tradingHours[][2]; // start,end in in double format h+m/60
 int m_lotDigits[];
-int m_commissionInPips[];
+double m_commission[];
 double m_lotMin[];
 double m_profitAdjustment[];
 
@@ -125,7 +125,7 @@ int OnInit()
    ArrayInitialize(m_stddevThreshold,0);
    ArrayInitialize(m_tradingHours,0.0);
    ArrayInitialize(m_lotDigits,0.0);
-   ArrayInitialize(m_commissionInPips,0);
+   ArrayInitialize(m_commission,0.0);
    ArrayInitialize(m_lotMin,0.0);
    ArrayInitialize(m_profitAdjustment,0.0);
    
@@ -148,7 +148,7 @@ int OnInit()
    ArrayResize(m_stddevThreshold,i_namesNumber,0);
    ArrayResize(m_tradingHours,i_namesNumber,0);
    ArrayResize(m_lotDigits,i_namesNumber,0);
-   ArrayResize(m_commissionInPips,i_namesNumber,0);
+   ArrayResize(m_commission,i_namesNumber,0);
    ArrayResize(m_lotMin,i_namesNumber,0);
    ArrayResize(m_profitAdjustment,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
@@ -164,7 +164,7 @@ int OnInit()
 	 m_rangeMin[i] = StringToDouble(m_rows[3]);
 	 m_tradingHours[i][0] = StringToDouble(m_rows[4]) + StringToDouble(m_rows[5])/60;
          m_tradingHours[i][1] = StringToDouble(m_rows[6]) + StringToDouble(m_rows[7])/60;
-	 m_commissionInPips[i] = StringToInteger(m_rows[8]);
+	 m_commission[i] = StringToInteger(m_rows[8]) * MarketInfo(m_names[i],MODE_POINT);
       }
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       
@@ -483,10 +483,10 @@ if (m_tradeFlag[i]==true) {
          			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
          			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
          			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
-         			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR,i_digits);
-         			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR,i_digits);
-         			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR,i_digits);
-         			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR,i_digits);
+         			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR + m_commission[i],i_digits);
+         			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR - m_commission[i],i_digits);
+         			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR + m_commission[i],i_digits);
+         			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR - m_commission[i],i_digits);
          			m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
      	         }
       	  }
