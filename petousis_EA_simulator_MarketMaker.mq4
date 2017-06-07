@@ -372,14 +372,26 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
 				f_orderProfit = OrderProfit() + OrderCommission() + OrderSwap();
-				// This adds profit from trades that have not breached the cap to martingale losses
-				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+				if (b_multipleSequences) {
+					// This adds profit from trades that have not breached the cap to martingale losses
+					if (f_orderProfit>0) {
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+					}
+					// if sequence == cap, add the loss to the martingale losses
+					else if (f_orderProfit<0 && m_sequence[i][0]==i_cap) {
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
+					}
 				}
-				// if sequence exceeds cap, add the loss to the martingale losses
-				else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
-            }
+				else {
+					// This adds profit from trades that have not breached the cap to martingale losses
+					if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+					}
+					// if sequence exceeds cap, add the loss to the martingale losses
+					else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
+					}
+				}
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
@@ -414,14 +426,26 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {					// if closed
 				f_orderProfit = OrderProfit() + OrderCommission() + OrderSwap();
-				// This adds profit from trades that have not breached the cap to martingale losses
-				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+				if (b_multipleSequences) {
+					// This adds profit from trades that have not breached the cap to martingale losses
+					if (f_orderProfit>0) {
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+					}
+					// if sequence == cap, add the loss to the martingale losses
+					else if (f_orderProfit<0 && m_sequence[i][0]==i_cap) {
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
+					}
 				}
-				// if sequence exceeds cap, add the loss to the martingale losses
-				else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
-            }
+				else {
+					// This adds profit from trades that have not breached the cap to martingale losses
+					if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+					}
+					// if sequence exceeds cap, add the loss to the martingale losses
+					else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
+		    			}
+				}
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
