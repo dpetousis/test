@@ -503,16 +503,27 @@ if (m_tradeFlag[i]==true) {
          			// Then calculate all trade components for the sequence
          			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
          			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
-         			f_SR = MathMax(MathMax((f_high - f_low)/2,m_rangeMin[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
+				f_SR = MathMax(MathMax((f_high - f_low)/2,m_rangeMin[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
          			Alert("STOPLEVEL for ",m_names[i]," is: ",MarketInfo(m_names[i],MODE_STOPLEVEL));
          			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
          			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+				/**
+				// SL is on the MA level, open is on the bands
          			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
          			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
          			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR + m_commission[i],i_digits);
          			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR - m_commission[i],i_digits);
          			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR + m_commission[i],i_digits);
          			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR - m_commission[i],i_digits);
+				**/
+				// SL is on the opposite trade's open, open is on the bands
+         			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
+         			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
+         			m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - 2*f_SR + m_commission[i],i_digits);
+         			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + 2*f_SR - m_commission[i],i_digits);
+         			m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + 2*f_SR + m_commission[i],i_digits);
+         			m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - 2*f_SR - m_commission[i],i_digits);
+				
          			m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
      	         }
       	  }
