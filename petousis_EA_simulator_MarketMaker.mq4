@@ -31,8 +31,7 @@
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches
 input string s_inputFileName = "TF_DEMO_MarketMaker.txt"; 
-string s_martingaleLossesFileName = "TF_DEMO_Marketmaker_Losses.txt";
-input int i_stratMagicNumber = 84;		// Always positive
+input int i_stratMagicNumber = 85;		// Always positive
 input int i_stdevHistory = 1500;
 input int i_maAveragingPeriod = 20;
 extern bool b_enterNewSequences = true;
@@ -59,6 +58,7 @@ double m_pips[];
 bool m_tradeFlag[];
 double m_profitInUSD[];
 double m_rangeMin[];
+double m_rangeMax[];
 double m_stddev[];
 double m_stddevThreshold[];
 double m_tradingHours[][2]; // start,end in in double format h+m/60
@@ -99,6 +99,7 @@ int OnInit()
    else PrintFormat("Failed to open %s file, Error code = %d",s_inputFileName,GetLastError());
    i_namesNumber = ArraySize(arr);
    // MARTINGALE LOSSES
+   string s_martingaleLossesFileName = StringConcatenate("TF_DEMO_Marketmaker_Losses_",i_stratMagicNumber,".txt");
    filehandle=FileOpen(s_martingaleLossesFileName,FILE_READ|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
       f_martingaleLosses = StringToDouble(FileReadString(filehandle));
@@ -121,6 +122,7 @@ int OnInit()
    ArrayInitialize(m_tradeFlag,false);
    ArrayInitialize(m_profitInUSD,0);
    ArrayInitialize(m_rangeMin,0);
+   ArrayInitialize(m_rangeMax,0);
    ArrayInitialize(m_stddev,0);
    ArrayInitialize(m_stddevThreshold,0);
    ArrayInitialize(m_tradingHours,0.0);
@@ -144,6 +146,7 @@ int OnInit()
    ArrayResize(m_tradeFlag,i_namesNumber,0);
    ArrayResize(m_profitInUSD,i_namesNumber,0);
    ArrayResize(m_rangeMin,i_namesNumber,0);
+   ArrayResize(m_rangeMax,i_namesNumber,0);
    ArrayResize(m_stddev,i_stdevHistory,0);
    ArrayResize(m_stddevThreshold,i_namesNumber,0);
    ArrayResize(m_tradingHours,i_namesNumber,0);
@@ -162,9 +165,10 @@ int OnInit()
          }
          m_profitInUSD[i] = StringToDouble(m_rows[2]);
 	      m_rangeMin[i] = StringToDouble(m_rows[3]);
-	      m_tradingHours[i][0] = StringToDouble(m_rows[4]) + StringToDouble(m_rows[5])/60;
-         m_tradingHours[i][1] = StringToDouble(m_rows[6]) + StringToDouble(m_rows[7])/60;
-         m_commission[i] = StringToDouble(m_rows[8]) * MarketInfo(m_names[i],MODE_POINT);
+	      m_rangeMax[i] = StringToDouble(m_rows[4]);
+	      m_tradingHours[i][0] = StringToDouble(m_rows[5]) + StringToDouble(m_rows[6])/60;
+         m_tradingHours[i][1] = StringToDouble(m_rows[7]) + StringToDouble(m_rows[8])/60;
+         m_commission[i] = StringToDouble(m_rows[9]) * MarketInfo(m_names[i],MODE_POINT);
       }
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       
@@ -203,7 +207,7 @@ int OnInit()
       	else {
             		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][0]-1),m_lotDigits[i]);
          }
-      	m_pips[i] = NormalizeDouble((m_takeProfit[i][0]-m_openPrice[i,0]) / MarketInfo(m_names[i],MODE_POINT),0);
+      	m_pips[i] = NormalizeDouble((m_takeProfit[i][0]-m_openPrice[i,0]-m_commission[i]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
       if (readTradeComment(m_magicNumber[i,1],m_names[i],commentArr)==true) {		// SELL
       	m_sequence[i][1] = (int)commentArr[0];
@@ -218,7 +222,7 @@ int OnInit()
       	else {
             		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][1]-1),m_lotDigits[i]);
          }
-      	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]) / MarketInfo(m_names[i],MODE_POINT),0);
+      	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]-m_commission[i]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
       
       // count of products still live, if none then terminate EA
@@ -233,7 +237,8 @@ int OnInit()
    }
    
    // write to file
-   filehandle=FileOpen("STDEV_THRESHOLDS.txt",FILE_WRITE|FILE_TXT);
+   string s_thresholdsFileName = StringConcatenate("STDEV_THRESHOLDS_",i_stratMagicNumber,".txt");
+   filehandle=FileOpen(s_thresholdsFileName,FILE_WRITE|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
       for(int i=0; i<i_namesNumber; i++) {
 	FileWrite(filehandle,m_names[i],"_:_",m_stddevThreshold[i]);
@@ -289,6 +294,7 @@ void OnDeinit(const int reason)
    }
    
    // MARTINGALE LOSSES
+   string s_martingaleLossesFileName = StringConcatenate("TF_DEMO_Marketmaker_Losses_",i_stratMagicNumber,".txt");
    int filehandle=FileOpen(s_martingaleLossesFileName,FILE_WRITE|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
       FileWrite(filehandle,f_martingaleLosses);
@@ -495,7 +501,7 @@ if (m_tradeFlag[i]==true) {
       	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0) {
       	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
       	      //f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
-      	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // && (f_stddevCurrPrev>m_stddevThreshold[i])
+      	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // 
       	      //if ((f_stddevCurr<m_stddevThreshold[i]) && (b_enterNewSequences) && (b_enter==false)) {               // && (f_stddevCurrPrev>m_stddevThreshold[i])
       	      //   Alert("Order not placed because not inside trading hours for ",m_names[i],". Time is: ",f_time); 
       	      //}
@@ -503,7 +509,7 @@ if (m_tradeFlag[i]==true) {
          			// Then calculate all trade components for the sequence
          			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
          			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
-         			f_SR = MathMax(MathMax((f_high - f_low)/2,m_rangeMin[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
+         			f_SR = MathMax(MathMin(MathMax((f_high - f_low)/2,m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
          			Alert("STOPLEVEL for ",m_names[i]," is: ",MarketInfo(m_names[i],MODE_STOPLEVEL));
          			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
          			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
@@ -667,7 +673,7 @@ if (m_tradeFlag[i]==true) {
    		else {
       			temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,0]-1)),m_lotDigits[i]);
          }
-         s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",DoubleToStr(m_pips[i]),"_",DoubleToStr(m_sequence[i,0],0));
+         s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,0]),"_",IntegerToString((int)m_pips[i]),"_",DoubleToStr(m_sequence[i,0],0));
    		i_ticketBuy=OrderSend(m_names[i],OP_BUYSTOP,temp_lots,m_openPrice[i,0],slippage,m_stopLoss[i,0],m_takeProfit[i,0],s_comment,m_magicNumber[i,0]); //Opening Buy
    		Print("OrderSend returned:",i_ticketBuy," Lots: ",temp_lots); 
    		if (i_ticketBuy < 0)  {                  // Success :)   
@@ -698,7 +704,7 @@ if (m_tradeFlag[i]==true) {
 		else {
 	   		temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
       }
-      s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",DoubleToStr(m_pips[i]),"_",DoubleToStr(m_sequence[i,1],0));
+      s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",IntegerToString((int)m_pips[i]),"_",DoubleToStr(m_sequence[i,1],0));
 	   	i_ticketSell=OrderSend(m_names[i],OP_SELLSTOP,temp_lots,m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
 		Print("OrderSend returned:",i_ticketSell," Lots: ",temp_lots); 
 		if (i_ticketSell < 0)     {                 // Success :)
