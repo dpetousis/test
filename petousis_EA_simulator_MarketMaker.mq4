@@ -187,7 +187,9 @@ int OnInit()
       // Estimate threshold standard deviation
       //Print(ArraySize(m_stddev));
       for (int j=0;j<i_stdevHistory;j++) {
-      		m_stddev[j] = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,j+1);
+      		//m_stddev[j] = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,j+1);
+		m_stddev[j] = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,j+1) - 
+				iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,j+1);
       }
       bool res = ArraySort(m_stddev,WHOLE_ARRAY,0,MODE_ASCEND);
       if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory/10)]; }		// 10th percentile	
