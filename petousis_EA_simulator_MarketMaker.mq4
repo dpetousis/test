@@ -501,16 +501,18 @@ if (m_tradeFlag[i]==true) {
       if (m_tradeFlag[i]==true) {
       	 // When not in sequence, check for signal to enter
       	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0) {
-      	      f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
+      	      //f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
       	      //f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
-      	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // 
+      	      f_stddevCurr = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,0) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,0);
+	      f_stddevCurrPrev = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
+	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // 
       	      //if ((f_stddevCurr<m_stddevThreshold[i]) && (b_enterNewSequences) && (b_enter==false)) {               // && (f_stddevCurrPrev>m_stddevThreshold[i])
       	      //   Alert("Order not placed because not inside trading hours for ",m_names[i],". Time is: ",f_time); 
       	      //}
             	if (b_enter) {
          			// Then calculate all trade components for the sequence
-         			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
-         			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
+         			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,0);
+         			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,0);
          			f_SR = MathMax(MathMin(MathMax((f_high - f_low)/2,m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
          			Alert("STOPLEVEL for ",m_names[i]," is: ",MarketInfo(m_names[i],MODE_STOPLEVEL));
          			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
