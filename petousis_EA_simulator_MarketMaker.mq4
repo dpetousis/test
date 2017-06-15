@@ -33,12 +33,18 @@
 input string s_inputFileName = "TF_DEMO_MarketMaker.txt"; 
 input int i_stratMagicNumber = 85;		// Always positive
 input int i_stdevHistory = 1500;
+/** This is the averaging period of the bollinger bands **/
 input int i_maAveragingPeriod = 20;
+/** if false it will stop entering new sequences **/
 extern bool b_enterNewSequences = true;
-input bool b_multipleSequences = true;
+/** if false we have martingale with a cap **/
+input bool b_regeneratingSequences = true;   
+/** if false we have both SL at the price level **/
+input bool b_overlappingOrders = true;       //
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
+int const i_percentile=5;
 int const f_bandsStdev = 5;
 int const i_cap = 3;
 int const timeFrame=Period();        
@@ -188,11 +194,11 @@ int OnInit()
       //Print(ArraySize(m_stddev));
       for (int j=0;j<i_stdevHistory;j++) {
       		//m_stddev[j] = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,j+1);
-		m_stddev[j] = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,j+1) - 
-				iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,j+1);
+		      m_stddev[j] = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,j+1) - 
+                           iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,j+1);
       }
       bool res = ArraySort(m_stddev,WHOLE_ARRAY,0,MODE_ASCEND);
-      if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory/10)]; }		// 10th percentile	
+      if (res) { m_stddevThreshold[i] = m_stddev[int(i_stdevHistory*i_percentile/100)]; }		//  percentile	
       else { Alert("Standard deviation array could not be sorted."); }
       
       // UPDATE WITH EXISTING TRADES AT START OF EA
@@ -203,7 +209,7 @@ int OnInit()
       	m_takeProfit[i][0] = commentArr[3];
       	m_stopLoss[i][0] = commentArr[4];
       	m_openPrice[i][0] = commentArr[5];
-      	if (b_multipleSequences) {
+      	if (b_regeneratingSequences) {
       		      m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,MathMod(m_sequence[i][0]-1,i_cap)),m_lotDigits[i]);
       	}
       	else {
@@ -218,7 +224,7 @@ int OnInit()
       	m_takeProfit[i][1] = commentArr[3];
       	m_stopLoss[i][1] = commentArr[4];
       	m_openPrice[i][1] = commentArr[5];
-      	if (b_multipleSequences) {
+      	if (b_regeneratingSequences) {
       		      m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,MathMod(m_sequence[i][1]-1,i_cap)),m_lotDigits[i]);
       	}
       	else {
@@ -380,7 +386,7 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
 				f_orderProfit = OrderProfit()+OrderCommission()+OrderSwap();
-				if (b_multipleSequences) {
+				if (b_regeneratingSequences) {
 					// This adds profit from trades that have not breached the cap to martingale losses
 					if (f_orderProfit>0) {
 						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
@@ -435,7 +441,7 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {					// if closed
 				f_orderProfit = OrderProfit()+OrderCommission()+OrderSwap();
-				if (b_multipleSequences) {
+				if (b_regeneratingSequences) {
 					// This adds profit from trades that have not breached the cap to martingale losses
 					if (f_orderProfit>0) {
 						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
@@ -504,38 +510,34 @@ if (m_tradeFlag[i]==true) {
       	      //f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
       	      //f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
       	      f_stddevCurr = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,0) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,0);
-	      f_stddevCurrPrev = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
-	      b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // 
-      	      //if ((f_stddevCurr<m_stddevThreshold[i]) && (b_enterNewSequences) && (b_enter==false)) {               // && (f_stddevCurrPrev>m_stddevThreshold[i])
+	            f_stddevCurrPrev = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
+	            b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // 
+               //if ((f_stddevCurr<m_stddevThreshold[i]) && (b_enterNewSequences) && (b_enter==false)) {               // && (f_stddevCurrPrev>m_stddevThreshold[i])
       	      //   Alert("Order not placed because not inside trading hours for ",m_names[i],". Time is: ",f_time); 
       	      //}
             	if (b_enter) {
          			// Then calculate all trade components for the sequence
-         			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,0);
-         			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,0);
+         			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
+         			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
          			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
-				//Alert("STOPLEVEL for ",m_names[i]," is: ",MarketInfo(m_names[i],MODE_STOPLEVEL));
-				if (b_overlappingOrders) {
-					f_SR = MathMax(MathMin(MathMax((f_high - f_low),m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
-					m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
-					m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR/2,i_digits);
-					m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR/2,i_digits);
-					m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR + m_commission[i],i_digits);
-					m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR - m_commission[i],i_digits);
-					m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR + m_commission[i],i_digits);
-					m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR - m_commission[i],i_digits);
-				}
-				else {
-					f_SR = MathMax(MathMin(MathMax((f_high - f_low)/2,m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
-					m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
-					m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
-					m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
-					m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR + m_commission[i],i_digits);
-					m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR - m_commission[i],i_digits);
-					m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR + m_commission[i],i_digits);
-					m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR - m_commission[i],i_digits);
-				}
-         			m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
+         			//Alert("STOPLEVEL for ",m_names[i]," is: ",MarketInfo(m_names[i],MODE_STOPLEVEL));
+         			if (b_overlappingOrders) {
+         			   f_SR = MathMax(MathMin(MathMax((f_high - f_low),m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
+      					m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
+      					m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR/2,i_digits);
+      					m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR/2,i_digits);
+         			}
+         			else {
+            			f_SR = MathMax(MathMin(MathMax((f_high - f_low)/2,m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
+            			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
+            			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
+            			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
+            		}
+            		m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR + m_commission[i],i_digits);
+            	   m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR - m_commission[i],i_digits);
+            		m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR - m_commission[i],i_digits);
+            		m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR + m_commission[i],i_digits);
+            		m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
      	         }
       	  }
 	  
@@ -683,7 +685,7 @@ if (m_tradeFlag[i]==true) {
 			m_stopLoss[i][0] = NormalizeDouble(m_stopLoss[i][0],i_digits);
 			m_takeProfit[i][0] = NormalizeDouble(m_takeProfit[i][0],i_digits);
    		Print("Attempt to open Buy. Waiting for response..",m_names[i],m_magicNumber[i,0]); 
-   		if (b_multipleSequences) {
+   		if (b_regeneratingSequences) {
 			      temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMod((double)m_sequence[i,0]-1,i_cap)),m_lotDigits[i]);
    		}
    		else {
@@ -714,7 +716,7 @@ if (m_tradeFlag[i]==true) {
 			m_stopLoss[i][1] = NormalizeDouble(m_stopLoss[i][1],i_digits);
 			m_takeProfit[i][1] = NormalizeDouble(m_takeProfit[i][1],i_digits);
 		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
-	   	if (b_multipleSequences) {
+	   	if (b_regeneratingSequences) {
 			temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMod((double)m_sequence[i,1]-1,i_cap)),m_lotDigits[i]);
 		}
 		else {

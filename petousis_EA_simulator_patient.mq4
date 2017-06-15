@@ -715,7 +715,7 @@ if (b_lockIn) {
             ASK = MarketInfo(m_names[i],MODE_ASK);
             SL=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-            m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],m_lotDigits[i]));
+            m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
             Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
@@ -753,7 +753,7 @@ if (b_lockIn) {
             //ASK = MarketInfo(m_names[i],MODE_ASK);
             SL=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-            m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i],m_lotDigits[i]));
+            m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
             Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_ticketPositionPending[i]<0 && m_isPositionOpen[i]==false) {
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
