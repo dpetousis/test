@@ -32,7 +32,7 @@
 //input switches
 input string s_inputFileName = "TF_DEMO_MarketMaker.txt"; 
 input int i_stratMagicNumber = 85;		// Always positive
-input int i_stdevHistory = 1500;
+input int i_stdevHistory = 5000;
 /** This is the averaging period of the bollinger bands **/
 input int i_maAveragingPeriod = 20;
 /** if false it will stop entering new sequences **/
@@ -559,14 +559,15 @@ if (m_tradeFlag[i]==true) {
    			   m_signal[i,0] = 1;		//open pending
    			   m_signal[i,1] = 1;		// open pending
    		 }
-   		 else if (m_state[i,0]==0 && m_state[i,1]==1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
+   		 else if (m_state[i,0]==0 && m_state[i,1]>=1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
    			m_signal[i,0] = 1;		// open pending
-   			m_signal[i,1] = 1;		// delete->open new pending 
+   			m_signal[i,1] = 0;		// delete->open new pending 
    		 }
-   		 else if (m_state[i,0]==1 && m_state[i,1]==0) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
-   			m_signal[i,0] = 1;		// delete->new open pending
+   		 else if (m_state[i,0]>=1 && m_state[i,1]==0) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
+   			m_signal[i,0] = 0;		// delete->new open pending
    			m_signal[i,1] = 1;		// open pending
    		 }
+   		 /**
    		 else if ((m_state[i,0]==2 && m_state[i,1]==0) || (m_state[i,0]==0 && m_state[i,1]==2)) {	// something wrong
    			m_signal[i,0] = -1;		// close trade
    			m_signal[i,1] = -1;		// close trade
@@ -577,7 +578,6 @@ if (m_tradeFlag[i]==true) {
    			m_signal[i,1] = -1;		// close trade
    			Alert("Something is wrong, both trades open at the same time.");
    		 }
-   		 /**
    		 else if ((!m_insideTradingHours[i]) && m_sequence[i][0]==1 && m_sequence[i][1]==1 && (m_state[i,0]==1 || m_state[i,1]==1)) {
    			// if outside trading hours and have two pending orders open and sequence has just started then close them.
 			   m_signal[i,0] = -1;		// close trade
@@ -671,10 +671,10 @@ if (m_tradeFlag[i]==true) {
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
    	// Open Buy & Sell
-   	if (m_openBuy[i]==true && m_openSell[i]==true) {
+   	if (m_openBuy[i]==true) {
    		// BUY: delete existing pending buy order if there is one
-		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
-		if (res && OrderType()==OP_BUYSTOP && OrderCloseTime()==0) {	// order exists and is BUYSTOP and is LIVE
+   		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
+   		if (res && OrderType()==OP_BUYSTOP && OrderCloseTime()==0) {	// order exists and is BUYSTOP and is LIVE
    			res = OrderDelete(m_ticket[i,0]);
    			if (res) { Print("Pending Order deleted successfully"); }
    			else { Alert("Order deletion failed with error #", GetLastError()); }
@@ -703,38 +703,40 @@ if (m_tradeFlag[i]==true) {
    			Alert ("Opened pending order Buy:",i_ticketBuy,",Symbol:",m_names[i]," Lots:",temp_lots);
 			m_ticket[i,0] = i_ticketBuy;
    		}
-		// SELL: delete existing pending order if there is one
-		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
-		if (res && OrderType()==OP_SELLSTOP && OrderCloseTime()==0) {	// order exists and is SELLSTOP and is LIVE
-			res = OrderDelete(m_ticket[i,1]);
-			if (res) { Print("Pending Order deleted successfully"); }
-			else { Alert("Order deletion failed with error #", GetLastError()); }
-		}
-		// SELL: open the new pending order
-		i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
-	      m_openPrice[i][1] = NormalizeDouble(m_openPrice[i][1],i_digits);
-			m_stopLoss[i][1] = NormalizeDouble(m_stopLoss[i][1],i_digits);
-			m_takeProfit[i][1] = NormalizeDouble(m_takeProfit[i][1],i_digits);
-		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
-	   	if (b_regeneratingSequences) {
-			temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMod((double)m_sequence[i,1]-1,i_cap)),m_lotDigits[i]);
-		}
-		else {
-	   		temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
-      }
-      s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",IntegerToString((int)m_pips[i]),"_",DoubleToStr(m_sequence[i,1],0));
-	   	i_ticketSell=OrderSend(m_names[i],OP_SELLSTOP,temp_lots,m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
-		Print("OrderSend returned:",i_ticketSell," Lots: ",temp_lots); 
-		if (i_ticketSell < 0)     {                 // Success :)
-		  Alert("OrderSend ",m_names[i]," failed with error #", GetLastError());
-		  Alert("Open: ",m_openPrice[i,1],". SL: ",m_stopLoss[i,1],". TP: ",m_takeProfit[i,1]);
-                  Alert("Loss#: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i]+m_profitAdjustment[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_pips[i]);
-		}
-		else {
-		  Alert ("Opened pending order Sell ",i_ticketSell,",Symbol:",m_names[i]," Lots:",temp_lots);
-		  m_ticket[i,1] = i_ticketSell;
-	   	}
-	 }                  
+   	}
+   	if (m_openSell[i]==true) {
+   		// SELL: delete existing pending order if there is one
+   		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
+   		if (res && OrderType()==OP_SELLSTOP && OrderCloseTime()==0) {	// order exists and is SELLSTOP and is LIVE
+   			res = OrderDelete(m_ticket[i,1]);
+   			if (res) { Print("Pending Order deleted successfully"); }
+   			else { Alert("Order deletion failed with error #", GetLastError()); }
+   		}
+   		// SELL: open the new pending order
+   		i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+   	      m_openPrice[i][1] = NormalizeDouble(m_openPrice[i][1],i_digits);
+   			m_stopLoss[i][1] = NormalizeDouble(m_stopLoss[i][1],i_digits);
+   			m_takeProfit[i][1] = NormalizeDouble(m_takeProfit[i][1],i_digits);
+   		Print("Attempt to open Sell. Waiting for response..",m_names[i],m_magicNumber[i,1]); 
+   	   	if (b_regeneratingSequences) {
+   			temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMod((double)m_sequence[i,1]-1,i_cap)),m_lotDigits[i]);
+   		}
+   		else {
+   	   		temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,1]-1)),m_lotDigits[i]);
+         }
+         s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,1]),"_",IntegerToString((int)m_pips[i]),"_",DoubleToStr(m_sequence[i,1],0));
+   	   	i_ticketSell=OrderSend(m_names[i],OP_SELLSTOP,temp_lots,m_openPrice[i,1],slippage,m_stopLoss[i,1],m_takeProfit[i,1],s_comment,m_magicNumber[i,1]); //Opening Buy
+   		Print("OrderSend returned:",i_ticketSell," Lots: ",temp_lots); 
+   		if (i_ticketSell < 0)     {                 // Success :)
+   		  Alert("OrderSend ",m_names[i]," failed with error #", GetLastError());
+   		  Alert("Open: ",m_openPrice[i,1],". SL: ",m_stopLoss[i,1],". TP: ",m_takeProfit[i,1]);
+                     Alert("Loss#: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i]+m_profitAdjustment[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_pips[i]);
+   		}
+   		else {
+   		  Alert ("Opened pending order Sell ",i_ticketSell,",Symbol:",m_names[i]," Lots:",temp_lots);
+   		  m_ticket[i,1] = i_ticketSell;
+   	   }
+   	 }                  
   }
   }
                   
