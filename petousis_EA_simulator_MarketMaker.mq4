@@ -389,12 +389,12 @@ if (m_tradeFlag[i]==true) {
 				if (b_regeneratingSequences) {
 					// This adds profit from trades that have not breached the cap to martingale losses
 					if (f_orderProfit>0) {
-						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + m_profitInUSD[i]+m_profitAdjustment[i]); 
 					}
 					// if sequence == cap, add the loss to the martingale losses
 					else if (f_orderProfit<0 && (int)MathMod(m_sequence[i][0],i_cap)==0) {
 						// Since f_orderProfit=2^(cap-1)
-                  f_martingaleLosses = MathMin(0,f_martingaleLosses + (2*f_orderProfit+m_profitInUSD[i]));
+                  f_martingaleLosses = MathMin(0,f_martingaleLosses + (2*f_orderProfit+m_profitInUSD[i]+m_profitAdjustment[i]));
 					}
 				}
 				else {
@@ -444,12 +444,12 @@ if (m_tradeFlag[i]==true) {
 				if (b_regeneratingSequences) {
 					// This adds profit from trades that have not breached the cap to martingale losses
 					if (f_orderProfit>0) {
-						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
+						f_martingaleLosses = MathMin(0,f_martingaleLosses + m_profitInUSD[i]+m_profitAdjustment[i]); 
 					}
 					// if sequence == cap, add the loss to the martingale losses
 					else if (f_orderProfit<0 && (int)MathMod(m_sequence[i][0],i_cap)==0) {
 						// Since f_orderProfit=2^(cap-1)
-                  f_martingaleLosses = MathMin(0,f_martingaleLosses + (2*f_orderProfit+m_profitInUSD[i]));
+                  f_martingaleLosses = MathMin(0,f_martingaleLosses + (2*f_orderProfit+m_profitInUSD[i]+m_profitAdjustment[i]));
 					}
 				}
 				else {
