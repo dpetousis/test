@@ -479,27 +479,25 @@ if (m_tradeFlag[i]==true) {
       	      //   Alert("Order not placed because not inside trading hours for ",m_names[i],". Time is: ",f_time); 
       	      //}
             	if (b_enter) {
-         			// Then calculate all trade components for the sequence
-         			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
-         			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
-         			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
-         			//Alert("STOPLEVEL for ",m_names[i]," is: ",MarketInfo(m_names[i],MODE_STOPLEVEL));
-         			if (b_overlappingOrders) {
-         			   f_SR = MathMax(MathMin(MathMax((f_high - f_low),m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
-      					m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
-      					m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR/2,i_digits);
-      					m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR/2,i_digits);
-         			}
-         			else {
-            			f_SR = MathMax(MathMin(MathMax((f_high - f_low)/2,m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
-            			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
-            			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR,i_digits);
-            			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR,i_digits);
-            		}
+			// Then calculate all trade components for the sequence
+			f_low = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
+			f_high = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1);
+			i_digits = (int)MarketInfo(m_names[i],MODE_DIGITS);
+			//Alert("STOPLEVEL for ",m_names[i]," is: ",MarketInfo(m_names[i],MODE_STOPLEVEL));
+			f_SR = MathMax(MathMin(MathMax((f_high - f_low),m_rangeMin[i]),m_rangeMax[i]),MarketInfo(m_names[i],MODE_STOPLEVEL)*MarketInfo(m_names[i],MODE_POINT)); 
+			m_pips[i] = NormalizeDouble(f_SR / MarketInfo(m_names[i],MODE_POINT),0);
+			m_openPrice[i][0] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) + f_SR/2,i_digits);
+			m_openPrice[i][1] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) + f_SR/2,i_digits);
+			m_openPrice[i][2] = NormalizeDouble(MarketInfo(m_names[i],MODE_ASK) - f_SR/2,i_digits);
+			m_openPrice[i][3] = NormalizeDouble(MarketInfo(m_names[i],MODE_BID) - f_SR/2,i_digits);
             		m_stopLoss[i][0] = NormalizeDouble(m_openPrice[i,0] - f_SR + m_commission[i],i_digits);
-            	   m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR - m_commission[i],i_digits);
+			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR - m_commission[i],i_digits);
+			m_stopLoss[i][2] = NormalizeDouble(m_openPrice[i,2] - f_SR + m_commission[i],i_digits);
+            	   	m_stopLoss[i][3] = NormalizeDouble(m_openPrice[i,3] + f_SR - m_commission[i],i_digits);
             		m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR - m_commission[i],i_digits);
             		m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR + m_commission[i],i_digits);
+			m_takeProfit[i][2] = NormalizeDouble(m_openPrice[i,2] + f_SR - m_commission[i],i_digits);
+            		m_takeProfit[i][3] = NormalizeDouble(m_openPrice[i,3] - f_SR + m_commission[i],i_digits);
             		m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
      	         }
       	  }
