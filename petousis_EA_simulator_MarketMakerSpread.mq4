@@ -180,8 +180,10 @@ int OnInit()
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       
       // magic numbers
-      m_magicNumber[i,0] = getMagicNumber(m_names[i],i_stratMagicNumber);
-      m_magicNumber[i,1] = -1 * m_magicNumber[i,0];
+      m_magicNumber[i,0] = 10*getMagicNumber(m_names[i],i_stratMagicNumber);
+      m_magicNumber[i,1] = m_magicNumber[i,0] + 1;
+      m_magicNumber[i,2] = m_magicNumber[i,0] + 2;
+      m_magicNumber[i,3] = m_magicNumber[i,0] + 3;
       
       // lot details
       m_lotDigits[i] = (int)MathMax(-MathLog10(MarketInfo(m_names[i],MODE_LOTSTEP)),0);
@@ -203,26 +205,18 @@ int OnInit()
       else { Alert("Standard deviation array could not be sorted."); }
       
       // UPDATE WITH EXISTING TRADES AT START OF EA
-      if (readTradeComment(m_magicNumber[i,0],m_names[i],commentArr)==true) {		// BUY
-      	m_sequence[i][0] = (int)commentArr[0];
-      	m_ticket[i][0] = (int)commentArr[1];
-      	m_state[i][0] = (int)commentArr[2];
-      	m_takeProfit[i][0] = commentArr[3];
-      	m_stopLoss[i][0] = commentArr[4];
-      	m_openPrice[i][0] = commentArr[5];
-        m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][0]-1),m_lotDigits[i]);
-      	m_pips[i] = NormalizeDouble((m_takeProfit[i][0]-m_openPrice[i,0]-m_commission[i]) / MarketInfo(m_names[i],MODE_POINT),0);
-      }
-      if (readTradeComment(m_magicNumber[i,1],m_names[i],commentArr)==true) {		// SELL
-      	m_sequence[i][1] = (int)commentArr[0];
-      	m_ticket[i][1] = (int)commentArr[1];
-      	m_state[i][1] = (int)commentArr[2];
-      	m_takeProfit[i][1] = commentArr[3];
-      	m_stopLoss[i][1] = commentArr[4];
-      	m_openPrice[i][1] = commentArr[5];
-        m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][1]-1),m_lotDigits[i]);
-      	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]-m_commission[i]) / MarketInfo(m_names[i],MODE_POINT),0);
-      }
+      for (j=0; j<4; j++) {
+	      if (readTradeComment(m_magicNumber[i,j],m_names[i],commentArr)==true) {		// BUY
+		m_sequence[i][j] = (int)commentArr[0];
+		m_ticket[i][j] = (int)commentArr[1];
+		m_state[i][j] = (int)commentArr[2];
+		m_takeProfit[i][j] = commentArr[3];
+		m_stopLoss[i][j] = commentArr[4];
+		m_openPrice[i][j] = commentArr[5];
+		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][j]-1),m_lotDigits[i]);
+		m_pips[i] = NormalizeDouble((MathAbs(m_takeProfit[i][j]-m_openPrice[i,j])-m_commission[i]) / MarketInfo(m_names[i],MODE_POINT),0);
+	      }
+	}
       
       // count of products still live, if none then terminate EA
       if (m_tradeFlag[i]) { i_numberLiveProducts = i_numberLiveProducts + 1; }
@@ -324,11 +318,9 @@ void OnTimer() //void OnTick()
    double
    f_liveSequenceLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,f_time=0.0,temp_lots=0.0,
    f_low,f_high,f_SR=0;
-   int m_signal[][2]; 	// -1: close 0: do nothing 1:open pending
-   bool m_openBuy[];
-   bool m_openSell[];
-   bool m_closeBuy[];
-   bool m_closeSell[];
+   int m_signal[][4]; 	// -1: close 0: do nothing 1:open pending
+   bool m_open[][4];
+   bool m_close[][4];
    bool m_sequenceEndedFlag[];
    bool m_insideTradingHours[];
    string s_comment,s_orderSymbol,s_liveSequenceLosses;
@@ -336,17 +328,13 @@ void OnTimer() //void OnTick()
    
 // PRELIMINARY PROCESSING ///////////////////////////////////////////////////////////////////////////////////////////////////////////
    ArrayResize(m_signal,i_namesNumber,0);
-   ArrayResize(m_openBuy,i_namesNumber,0);
-   ArrayResize(m_openSell,i_namesNumber,0);
-   ArrayResize(m_closeBuy,i_namesNumber,0);
-   ArrayResize(m_closeSell,i_namesNumber,0);
+   ArrayResize(m_open,i_namesNumber,0);
+   ArrayResize(m_close,i_namesNumber,0);
    ArrayResize(m_sequenceEndedFlag,i_namesNumber,0);
    ArrayResize(m_insideTradingHours,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
-   ArrayInitialize(m_openBuy,false);
-   ArrayInitialize(m_openSell,false);
-   ArrayInitialize(m_closeBuy,false);
-   ArrayInitialize(m_closeSell,false);
+   ArrayInitialize(m_open,false);
+   ArrayInitialize(m_close,false);
    ArrayInitialize(m_sequenceEndedFlag,false);
    ArrayInitialize(m_insideTradingHours,false);
    
