@@ -50,16 +50,17 @@ int const i_cap = 3;
 int const timeFrame=Period();        
 bool Work = true;             //EA will work
 string const symb =Symbol();
-int m_magicNumber[NAMESNUMBERMAX][2];  // Magic Numbers
+// 4 columns indicate buy up, sell up, buy down, sell down in that order
+int m_magicNumber[NAMESNUMBERMAX][4];  // Magic Numbers
 double m_lots[NAMESNUMBERMAX];
 double m_accountCcyFactors[NAMESNUMBERMAX];
 string m_names[NAMESNUMBERMAX];
-int m_state[NAMESNUMBERMAX,2];		// 0:no buy/sell trade 1:pending 2:open
-int m_sequence[NAMESNUMBERMAX][2];
-int m_ticket[NAMESNUMBERMAX][2];
-double m_openPrice[][2];
-double m_stopLoss[][2];
-double m_takeProfit[][2];
+int m_state[NAMESNUMBERMAX,4];		// 0:no buy/sell trade 1:pending 2:open
+int m_sequence[NAMESNUMBERMAX][4];
+int m_ticket[NAMESNUMBERMAX][4];
+double m_openPrice[][4];
+double m_stopLoss[][4];
+double m_takeProfit[][4];
 double m_pips[];
 bool m_tradeFlag[];
 double m_profitInUSD[];
@@ -209,12 +210,7 @@ int OnInit()
       	m_takeProfit[i][0] = commentArr[3];
       	m_stopLoss[i][0] = commentArr[4];
       	m_openPrice[i][0] = commentArr[5];
-      	if (b_regeneratingSequences) {
-      		      m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,MathMod(m_sequence[i][0]-1,i_cap)),m_lotDigits[i]);
-      	}
-      	else {
-            		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][0]-1),m_lotDigits[i]);
-         }
+        m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][0]-1),m_lotDigits[i]);
       	m_pips[i] = NormalizeDouble((m_takeProfit[i][0]-m_openPrice[i,0]-m_commission[i]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
       if (readTradeComment(m_magicNumber[i,1],m_names[i],commentArr)==true) {		// SELL
@@ -224,12 +220,7 @@ int OnInit()
       	m_takeProfit[i][1] = commentArr[3];
       	m_stopLoss[i][1] = commentArr[4];
       	m_openPrice[i][1] = commentArr[5];
-      	if (b_regeneratingSequences) {
-      		      m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,MathMod(m_sequence[i][1]-1,i_cap)),m_lotDigits[i]);
-      	}
-      	else {
-            		m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][1]-1),m_lotDigits[i]);
-         }
+        m_lots[i] = NormalizeDouble(commentArr[6]/MathPow(2,m_sequence[i][1]-1),m_lotDigits[i]);
       	m_pips[i] = NormalizeDouble((m_openPrice[i][1]-m_takeProfit[i,1]-m_commission[i]) / MarketInfo(m_names[i],MODE_POINT),0);
       }
       
@@ -386,27 +377,14 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
 				f_orderProfit = OrderProfit()+OrderCommission()+OrderSwap();
-				if (b_regeneratingSequences) {
-					// This adds profit from trades that have not breached the cap to martingale losses
-					if (f_orderProfit>0) {
-						f_martingaleLosses = MathMin(0,f_martingaleLosses + m_profitInUSD[i]+m_profitAdjustment[i]); 
-					}
-					// if sequence == cap, add the loss to the martingale losses
-					else if (f_orderProfit<0 && (int)MathMod(m_sequence[i][0],i_cap)==0) {
-						// Since f_orderProfit=2^(cap-1)
-                  f_martingaleLosses = MathMin(0,f_martingaleLosses + (2*f_orderProfit+m_profitInUSD[i]+m_profitAdjustment[i]));
-					}
+				// This adds profit from trades that have not breached the cap to martingale losses
+				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
+					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
-				else {
-					// This adds profit from trades that have not breached the cap to martingale losses
-					if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
-						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
-					}
-					// if sequence exceeds cap, add the loss to the martingale losses
-					else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
-						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
-					}
-            }
+				// if sequence exceeds cap, add the loss to the martingale losses
+				else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
+					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
+				}
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
@@ -441,27 +419,14 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {					// if closed
 				f_orderProfit = OrderProfit()+OrderCommission()+OrderSwap();
-				if (b_regeneratingSequences) {
-					// This adds profit from trades that have not breached the cap to martingale losses
-					if (f_orderProfit>0) {
-						f_martingaleLosses = MathMin(0,f_martingaleLosses + m_profitInUSD[i]+m_profitAdjustment[i]); 
-					}
-					// if sequence == cap, add the loss to the martingale losses
-					else if (f_orderProfit<0 && (int)MathMod(m_sequence[i][0],i_cap)==0) {
-						// Since f_orderProfit=2^(cap-1)
-                  f_martingaleLosses = MathMin(0,f_martingaleLosses + (2*f_orderProfit+m_profitInUSD[i]+m_profitAdjustment[i]));
-					}
+				// This adds profit from trades that have not breached the cap to martingale losses
+				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
+					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
-				else {
-					// This adds profit from trades that have not breached the cap to martingale losses
-					if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
-						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
-					}
-					// if sequence exceeds cap, add the loss to the martingale losses
-					else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
-						f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
+				// if sequence exceeds cap, add the loss to the martingale losses
+				else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
+					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
 		    		}
-            }
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
@@ -507,11 +472,9 @@ if (m_tradeFlag[i]==true) {
       if (m_tradeFlag[i]==true) {
       	 // When not in sequence, check for signal to enter
       	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0) {
-      	      //f_stddevCurr = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,0);
-      	      //f_stddevCurrPrev = iStdDev(m_names[i],PERIOD_M5,i_maAveragingPeriod,0,MODE_SMA,PRICE_CLOSE,1);
       	      f_stddevCurr = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,0) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,0);
-	            f_stddevCurrPrev = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
-	            b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // 
+	    f_stddevCurrPrev = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
+	    b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // 
                //if ((f_stddevCurr<m_stddevThreshold[i]) && (b_enterNewSequences) && (b_enter==false)) {               // && (f_stddevCurrPrev>m_stddevThreshold[i])
       	      //   Alert("Order not placed because not inside trading hours for ",m_names[i],". Time is: ",f_time); 
       	      //}
