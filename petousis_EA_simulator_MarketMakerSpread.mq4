@@ -559,21 +559,16 @@ if (m_tradeFlag[i]==true) {
 // CLOSING TRADE CRITERIA  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
-		// BUY
-         if (m_signal[i,0]==-1) { 		// close trade
-            m_closeBuy[i] = true; 
-         }
-         else {
-            m_closeBuy[i] = false;
-         }
-		 // SELL
-         if (m_signal[i,1]==-1) { 
-            m_closeSell[i] = true; 
-         }
-         else {
-            m_closeSell[i] = false;
-         }
-         
+   	for (int j=0; j<3; j++) {
+		if (m_signal[i,j]==-1) { 		// close trade
+		    m_close[i,j] = true; 
+		 }
+		 else {
+		    m_close[i,j] = false;
+		 }
+	
+	}
+     
     }
     }
    
