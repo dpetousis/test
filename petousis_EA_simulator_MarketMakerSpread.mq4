@@ -575,26 +575,20 @@ if (m_tradeFlag[i]==true) {
 // CLOSING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	for(int i=0; i<i_namesNumber; i++) {
 	if (m_tradeFlag[i]==true) {
-		if (m_closeBuy[i]==true) {
-			res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
-			if (OrderType()==OP_BUY) {
-				success = OrderClose(m_ticket[i,0],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }
-			else {
-				success = OrderDelete(m_ticket[i,0]);
+		for (int j=0; j<3; j++) {
+			if (m_close[i,j]==true) {
+				res = OrderSelect(m_ticket[i,j],SELECT_BY_TICKET);
+				if (OrderType()==OP_BUY) {
+					success = OrderClose(m_ticket[i,j],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }
+				else if (OrderType()==OP_SELL) {
+					success = OrderClose(m_ticket[i,j],OrderLots(),MarketInfo(m_names[i],MODE_ASK),100); }
+				else {
+					success = OrderDelete(m_ticket[i,j]);
+				}
+				if (success) { Print("Order closed successfully"); }
+				else { Alert("Order #",m_ticket[i,j]," failed to close with error #", GetLastError()); }
 			}
-			if (success) { Print("Order closed successfully"); }
-			else { Alert("Order #",m_ticket[i,0]," failed to close with error #", GetLastError()); }
-		}
-		if (m_closeSell[i]==true) {
-			res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
-			if (OrderType()==OP_SELL) {
-				success = OrderClose(m_ticket[i,1],OrderLots(),MarketInfo(m_names[i],MODE_ASK),100); }
-			else {
-				success = OrderDelete(m_ticket[i,1]);
-			}
-			if (success) { Print("Order closed successfully"); }
-			else { Alert("Order #",m_ticket[i,1]," failed to close with error #", GetLastError()); }
-		}
+		}	
     }
     }
 
@@ -604,21 +598,14 @@ if (m_tradeFlag[i]==true) {
    //if ((TimeHour(TimeCurrent()) >= i_hourStart) && (TimeHour(TimeCurrent()) <= i_hourEnd) && (TimeDayOfWeek(TimeCurrent())!=0) && !((TimeDayOfWeek(TimeCurrent())==5) && (TimeHour(TimeCurrent())>=i_hourEndFriday)))        {    
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
-		// BUY
-         if (m_signal[i,0]==1) { 
-            m_openBuy[i] = true; 
-         }
-         else {
-            m_openBuy[i] = false;
-         }
-		 // SELL
-         if (m_signal[i,1]==1) { 
-            m_openSell[i] = true; 
-         }
-         else {
-            m_openSell[i] = false;
-         }
-         
+      		for (int j=0; j<3; j++) {
+			if (m_signal[i,j]==1) { 		// open trade
+			    m_open[i,j] = true; 
+			 }
+			 else {
+			    m_open[i,j] = false;
+			 }
+		}	
       }
       }
  
