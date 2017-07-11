@@ -73,7 +73,7 @@ int m_lotDigits[];
 double m_commission[];
 double m_lotMin[];
 double m_profitAdjustment[];
-string m_orderTypes[] = {OP_BUYSTOP, OPSELLLIMIT, OP_BUYLIMIT, OP_SELLSTOP};
+string m_orderTypes[4] = {OP_BUYSTOP, OP_SELLLIMIT, OP_BUYLIMIT, OP_SELLSTOP};
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -546,7 +546,15 @@ if (m_tradeFlag[i]==true) {
    		Print("Attempt to open trade. Waiting for response..",m_names[i],m_magicNumber[i,j]); 
       		temp_lots = NormalizeDouble(m_lots[i] * MathPow(2.0,MathMin(i_cap,(double)m_sequence[i,j]-1)),m_lotDigits[i]);
          	s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,j]),"_",IntegerToString((int)m_pips[i]),"_",DoubleToStr(m_sequence[i,j],0));
-		i_ticket=OrderSend(m_names[i],m_orderTypes[j],temp_lots,m_openPrice[i,j],slippage,m_stopLoss[i,j],m_takeProfit[i,j],s_comment,m_magicNumber[i,j]); 
+		
+		// order type
+		temp_price = MarketInfo(m_names[i],MODE_MID);
+		if (temp_price>m_openPrice[i,j] && m_orderTypes[j]==OP_SELLLIMIT) { temp_orderType = OP_SELLSTOP; }
+		else if (temp_price<m_openPrice[i,j] && m_orderTypes[j]==OP_BUYLIMIT) { temp_orderType = OP_BUYSTOP; }
+		else { temp_orderType = m_orderTypes[j]; }
+		
+		// send ticket
+		i_ticket=OrderSend(m_names[i],temp_orderType,temp_lots,m_openPrice[i,j],slippage,m_stopLoss[i,j],m_takeProfit[i,j],s_comment,m_magicNumber[i,j]); 
    		Print("OrderSend returned:",i_ticket," Lots: ",temp_lots); 
    		if (i_ticket < 0)  {                  // Success :)   
    			Alert("OrderSend ",m_names[i]," failed with error #", GetLastError());
