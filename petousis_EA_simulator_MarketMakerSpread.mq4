@@ -357,93 +357,46 @@ if (m_tradeFlag[i]==true) {
    
    // Set trading hours flag - if 24h trading set 0,0,23,60
    m_insideTradingHours[i] = f_time>=m_tradingHours[i][0] && f_time<m_tradingHours[i][1];
-   
-	// BUY:
-	// if there is already a closed trade today and we hit TP -> sequence restart
-	if (m_ticket[i][0]>0) {
-		res = OrderSelect(m_ticket[i,0],SELECT_BY_TICKET);
+   	
+	for (int j=0; j<4; j++) {
+   	if (m_ticket[i][j]>0) {
+		res = OrderSelect(m_ticket[i,j],SELECT_BY_TICKET);
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
 				f_orderProfit = OrderProfit()+OrderCommission()+OrderSwap();
 				// This adds profit from trades that have not breached the cap to martingale losses
-				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
+				if (f_orderProfit>0) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
 				}
 				// if sequence exceeds cap, add the loss to the martingale losses
-				else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
+				else if (f_orderProfit<0) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
 				}
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
-					m_sequence[i][0] = 1; 
-					m_sequence[i][1] = 1;
+					m_sequence[i][j] = 1; 
 				} 
-				else if (f_orderProfit<0) {
-					m_sequence[i][0] = m_sequence[i][0] + 1; 
-					m_sequence[i][1] = m_sequence[i][1] + 1;
-				}
-				m_state[i,0] = 0;
-				Alert("Buy Trade ",m_ticket[i,0]," has been closed with profit ",f_orderProfit,". Sequence Complete? ",m_sequenceEndedFlag[i]);
-				m_ticket[i][0] = 0;	// reset ticket
+				m_state[i,j] = 0;
+				Alert("Buy Trade ",m_ticket[i,j]," has been closed with profit ",f_orderProfit,". Sequence Complete? ",m_sequenceEndedFlag[i]);
+				m_ticket[i][j] = 0;	// reset ticket
 				// session PnL update
 				if (f_orderProfit!=0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
 			}
 			else {
-				if (OrderType()==OP_BUY) { m_state[i,0] = 2; }
-				else { m_state[i,0] = 1; }
+				if (OrderType()==OP_BUY || OrderType()==OP_SELL) { m_state[i,j] = 2; }
+				else { m_state[i,j] = 1; }
 			}
 		}
-		else { Alert("Failed to select trade: ",m_ticket[i,0]); }
+		else { Alert("Failed to select trade: ",m_ticket[i,j]); }
 	}
 	else {
 		m_profitAdjustment[i] = -1 * f_martingaleLosses/(i_numberLiveProducts-1);
 	}
-
-	// SELL: 
-	// if there is already a closed trade today and we hit TP -> done for the day
-	if (m_ticket[i][1]>0) {
-		res = OrderSelect(m_ticket[i,1],SELECT_BY_TICKET);
-		if (res) {
-			if (OrderCloseTime()>0) {					// if closed
-				f_orderProfit = OrderProfit()+OrderCommission()+OrderSwap();
-				// This adds profit from trades that have not breached the cap to martingale losses
-				if (f_orderProfit>0 && m_sequence[i][0]-1<=i_cap) {
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
-				}
-				// if sequence exceeds cap, add the loss to the martingale losses
-				else if (f_orderProfit<0 && m_sequence[i][0]>i_cap) {
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
-		    		}
-				// update state, sequence and ticket
-				if (f_orderProfit>0) { 
-					m_sequenceEndedFlag[i] = true;
-					m_sequence[i][0] = 1; 
-					m_sequence[i][1] = 1;
-				} 
-				else if (f_orderProfit<0) {
-					m_sequence[i][0] = m_sequence[i][0] + 1; 
-					m_sequence[i][1] = m_sequence[i][1] + 1;
-				}
-				m_state[i,1] = 0;
-				Alert("Sell Trade ",m_ticket[i,1]," has been closed with profit ",f_orderProfit,". Sequence Complete? ",m_sequenceEndedFlag[i]);
-				m_ticket[i][1] = 0;	// reset ticket
-				// session PnL update
-				if (f_orderProfit!=0) { f_sessionPNL = NormalizeDouble(f_sessionPNL + f_orderProfit,2); }
-			}
-			else {
-				if (OrderType()==OP_SELL) { m_state[i,1] = 2; }
-				else { m_state[i,1] = 1; }
-			}
-		}
-		else { Alert("Failed to select trade: ",m_ticket[i,1]); }
-	}
-	else {
-		m_profitAdjustment[i] = -1 * f_martingaleLosses/(i_numberLiveProducts-1);
 	}
 
 	// checks & balances
-	if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
+	//if (m_state[i,0]>0 && m_state[i,1]>0 && (m_sequence[i,0]!=m_sequence[i,1])) { Alert(m_names[i],": The trades have different sequence number."); }
 	/**
 	if ((m_sequence[i,0]==m_sequence[i,1]) && m_sequence[i,0]>1) {
 		f_liveSequenceLosses = f_liveSequenceLosses + (m_profitInUSD[i]+m_profitAdjustment[i])*(MathPow(2,MathMin(i_cap,m_sequence[i][0]-1)) - 1 + MathMax(0,m_sequence[i][0]-1-i_cap)*MathPow(2,i_cap));
