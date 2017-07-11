@@ -446,37 +446,26 @@ if (m_tradeFlag[i]==true) {
 	      
 	  
    	  // Signals
-   	  if (m_sequenceEndedFlag[i]) {
-	  	for (int j=0; j<4; j++) {
+	  for (int j=0; j<4; j++) {
+		  if (m_sequenceEndedFlag[i]) {
 			if (m_state[i,j]>0) {
-					m_signal[i,j] = -1;		// close trade
-				}
+				m_signal[i,j] = -1;		// close trade
+			}
 			else { m_signal[i,j] = 0; }
+		  }
+		  else {
+			 if (b_enter && m_state[i,0]==0 && m_state[i,1]==0 && m_state[i,2]==0 && m_state[i,3]==0) {		// should be the starting point -- open two pending orders
+				   m_signal[i,j] = 1;		//open pending
+			 }
+			 else if (m_state[i,j]==0 && (m_state[i,0]+m_state[i,1]+m_state[i,2]+m_state[i,3]>0)) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
+				m_signal[i,j] = 1;		// open pending
+			 }
+			 else {
+				// do nothing - normal operation
+				m_signal[i,j] = 0;		
+			 }
 		}
-      	  }
-   	  else {
-   		 if (b_enter && m_state[i,0]==0 && m_state[i,1]==0 && m_state[i,2]==0 && m_state[i,3]==0) {		// should be the starting point -- open two pending orders
-   			   m_signal[i,0] = 1;		//open pending
-   			   m_signal[i,1] = 1;		// open pending
-			   m_signal[i,2] = 1;		// open pending
-			   m_signal[i,3] = 1;		// open pending
-   		 }
-   		 else if (m_state[i,0]==0 && m_state[i,1]>=1) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
-   			m_signal[i,0] = 1;		// open pending
-   			m_signal[i,1] = 0;		// delete->open new pending 
-   		 }
-   		 else if (m_state[i,0]>=1 && m_state[i,1]==0) {							// one pending order only, other trade closed, by SL or error in opening pending order. So retry.
-   			m_signal[i,0] = 0;		// delete->new open pending
-   			m_signal[i,1] = 1;		// open pending
-   		 }
-   		 else {
-   			// do nothing - normal operation
-   			m_signal[i,0] = 0;		
-   			m_signal[i,1] = 0;
-			m_signal[i,2] = 0;
-			m_signal[i,3] = 0;
-   		 }
-   	}
+	}
 	 
       }
       }
