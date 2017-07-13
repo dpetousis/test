@@ -474,7 +474,7 @@ if (m_tradeFlag[i]==true) {
 // CLOSING TRADE CRITERIA  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
-   	for (int j=0; j<3; j++) {
+   	for (int j=0; j<4; j++) {
 		if (m_signal[i,j]==-1) { 		// close trade
 		    m_close[i,j] = true; 
 		 }
@@ -490,7 +490,7 @@ if (m_tradeFlag[i]==true) {
 // CLOSING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	for(int i=0; i<i_namesNumber; i++) {
 	if (m_tradeFlag[i]==true) {
-		for (int j=0; j<3; j++) {
+		for (int j=0; j<4; j++) {
 			if (m_close[i,j]==true) {
 				res = OrderSelect(m_ticket[i,j],SELECT_BY_TICKET);
 				if (OrderType()==OP_BUY) {
@@ -513,7 +513,7 @@ if (m_tradeFlag[i]==true) {
    //if ((TimeHour(TimeCurrent()) >= i_hourStart) && (TimeHour(TimeCurrent()) <= i_hourEnd) && (TimeDayOfWeek(TimeCurrent())!=0) && !((TimeDayOfWeek(TimeCurrent())==5) && (TimeHour(TimeCurrent())>=i_hourEndFriday)))        {    
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
-      		for (int j=0; j<3; j++) {
+      		for (int j=0; j<4; j++) {
 			if (m_signal[i,j]==1) { 		// open trade
 			    m_open[i,j] = true; 
 			 }
@@ -528,7 +528,7 @@ if (m_tradeFlag[i]==true) {
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
-   for (int j=0; j<3; j++) {
+   for (int j=0; j<4; j++) {
    	// Open Buy & Sell
    	if (m_open[i,j]==true) {
    		// delete existing pending order if there is one
