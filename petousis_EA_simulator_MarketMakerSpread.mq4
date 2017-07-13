@@ -89,12 +89,12 @@ int OnInit()
   {
    
    // TIMER FREQUENCY - APPARENTLY NO SERVER CONTACT FOR MORE THAN 30SEC WILL CAUSE REAUTHENTICATION ADDING CONSIDERABLE DELAY, SO THEREFORE USE 15SEC INTERVAL
-   EventSetTimer(15);
+   EventSetTimer(10);
    //Alert(Bars,"____",iBarShift(symb,timeFrame,TimeCurrent(),true));
    
    // READ IN THE FILES
    // INPUT FILE
-   string m_rows[9];       // name, trade Y/N, lots, sleep range start, sleep range end, commission
+   string m_rows[11];       // name, trade Y/N, profitinUSD, rangeMin, rangeMax, sleep range start, sleep range end, commission, profit in pips
    ushort u_sep=StringGetCharacter(",",0);
    int temp;
    string arr[];
@@ -585,7 +585,7 @@ if (m_tradeFlag[i]==true) {
    
    
    // PnL Alert
-   if (Seconds()<=15 && (int)MathMod(Minute(),10)==0) {
+   if (Seconds()<=10 && (int)MathMod(Minute(),10)==0) {
       Alert("Strategy:",i_stratMagicNumber," Session PnL: ",f_sessionPNL,". Total Martingale losses: ",f_martingaleLosses);
       //Alert("Total live sequence losses: ",f_liveSequenceLosses," USD");
       //Alert("Live sequences with losses: ",s_liveSequenceLosses);
