@@ -73,7 +73,7 @@ int m_lotDigits[];
 double m_commission[];
 double m_lotMin[];
 double m_profitAdjustment[];
-string m_orderTypes[4] = {OP_BUYSTOP, OP_SELLLIMIT, OP_BUYLIMIT, OP_SELLSTOP};
+int m_orderTypes[4] = {4,3,2,5}; //{"OP_BUYSTOP", "OP_SELLLIMIT", "OP_BUYLIMIT", "OP_SELLSTOP"};
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -206,7 +206,7 @@ int OnInit()
       else { Alert("Standard deviation array could not be sorted."); }
       
       // UPDATE WITH EXISTING TRADES AT START OF EA
-      for (j=0; j<4; j++) {
+      for (int j=0; j<4; j++) {
 	      if (readTradeComment(m_magicNumber[i,j],m_names[i],commentArr)==true) {		// BUY
 		m_sequence[i][j] = (int)commentArr[0];
 		m_ticket[i][j] = (int)commentArr[1];
@@ -313,11 +313,11 @@ void OnTimer() //void OnTick()
 
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
-   i_ticketPending=-1,i_ticketSell,i_ticketBuy,i_digits,
+   i_ticketPending=-1,i_ticket,i_digits,temp_orderType,
    i_win=0,i_loss=0;
    bool res,isNewBar,success,b_enter=false;
    double
-   f_liveSequenceLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,f_time=0.0,temp_lots=0.0,
+   f_liveSequenceLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,f_time=0.0,temp_lots=0.0,temp_price=0.0,
    f_low,f_high,f_SR=0;
    int m_signal[][4]; 	// -1: close 0: do nothing 1:open pending
    bool m_open[][4];
@@ -548,7 +548,7 @@ if (m_tradeFlag[i]==true) {
          	s_comment = StringConcatenate(IntegerToString(m_magicNumber[i,j]),"_",IntegerToString((int)m_pips[i]),"_",DoubleToStr(m_sequence[i,j],0));
 		
 		// order type
-		temp_price = MarketInfo(m_names[i],MODE_MID);
+		temp_price = MarketInfo(m_names[i],MODE_ASK);
 		if (temp_price>m_openPrice[i,j] && m_orderTypes[j]==OP_SELLLIMIT) { temp_orderType = OP_SELLSTOP; }
 		else if (temp_price<m_openPrice[i,j] && m_orderTypes[j]==OP_BUYLIMIT) { temp_orderType = OP_BUYSTOP; }
 		else { temp_orderType = m_orderTypes[j]; }
