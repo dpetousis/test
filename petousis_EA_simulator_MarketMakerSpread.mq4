@@ -30,7 +30,7 @@
 
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches
-input string s_inputFileName = "TF_DEMO_MarketMaker.txt"; 
+input string s_inputFileName = "TF_DEMO_MarketMakerSpread.txt"; 
 input int i_stratMagicNumber = 85;		// Always positive
 input int i_stdevHistory = 5000;
 /** This is the averaging period of the bollinger bands **/
@@ -74,6 +74,7 @@ double m_commission[];
 double m_lotMin[];
 double m_profitAdjustment[];
 int m_orderTypes[4] = {4,3,2,5}; //{"OP_BUYSTOP", "OP_SELLLIMIT", "OP_BUYLIMIT", "OP_SELLSTOP"};
+double m_profit[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -138,6 +139,7 @@ int OnInit()
    ArrayInitialize(m_commission,0.0);
    ArrayInitialize(m_lotMin,0.0);
    ArrayInitialize(m_profitAdjustment,0.0);
+   ArrayInitialize(m_profit,0.0);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -162,6 +164,7 @@ int OnInit()
    ArrayResize(m_commission,i_namesNumber,0);
    ArrayResize(m_lotMin,i_namesNumber,0);
    ArrayResize(m_profitAdjustment,i_namesNumber,0);
+   ArrayResize(m_profit,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
    
       // m_names array
@@ -177,6 +180,7 @@ int OnInit()
 	      m_tradingHours[i][0] = StringToDouble(m_rows[5]) + StringToDouble(m_rows[6])/60;
          m_tradingHours[i][1] = StringToDouble(m_rows[7]) + StringToDouble(m_rows[8])/60;
          m_commission[i] = StringToDouble(m_rows[9]) * MarketInfo(m_names[i],MODE_POINT);
+	 m_profit[i] = StringToDouble(m_rows[10]) * MarketInfo(m_names[i],MODE_POINT);
       }
       else { Alert("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       
@@ -436,10 +440,10 @@ if (m_tradeFlag[i]==true) {
 			m_stopLoss[i][1] = NormalizeDouble(m_openPrice[i,1] + f_SR - m_commission[i],i_digits);
 			m_stopLoss[i][2] = NormalizeDouble(m_openPrice[i,2] - f_SR + m_commission[i],i_digits);
             	   	m_stopLoss[i][3] = NormalizeDouble(m_openPrice[i,3] + f_SR - m_commission[i],i_digits);
-            		m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR - m_commission[i],i_digits);
-            		m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR + m_commission[i],i_digits);
-			m_takeProfit[i][2] = NormalizeDouble(m_openPrice[i,2] + f_SR - m_commission[i],i_digits);
-            		m_takeProfit[i][3] = NormalizeDouble(m_openPrice[i,3] - f_SR + m_commission[i],i_digits);
+            		m_takeProfit[i][0] = NormalizeDouble(m_openPrice[i,0] + f_SR - m_commission[i] + m_profit[i],i_digits);
+            		m_takeProfit[i][1] = NormalizeDouble(m_openPrice[i,1] - f_SR + m_commission[i] - m_profit[i],i_digits);
+			m_takeProfit[i][2] = NormalizeDouble(m_openPrice[i,2] + f_SR - m_commission[i] + m_profit[i],i_digits);
+            		m_takeProfit[i][3] = NormalizeDouble(m_openPrice[i,3] - f_SR + m_commission[i] - m_profit[i],i_digits);
             		m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_profitInUSD[i]+m_profitAdjustment[i]) / m_accountCcyFactors[i] / m_pips[i]),m_lotDigits[i]);
      	         }
       	  }
