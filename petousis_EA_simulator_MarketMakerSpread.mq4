@@ -369,6 +369,7 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
 				f_orderProfit = OrderProfit()+OrderCommission()+OrderSwap();
+				/**
 				// This adds profit from trades that have not breached the cap to martingale losses
 				if (f_orderProfit>0) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
@@ -377,6 +378,7 @@ if (m_tradeFlag[i]==true) {
 				else if (f_orderProfit<0) {
 					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
 				}
+				**/
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
