@@ -318,7 +318,7 @@ void OnTimer() //void OnTick()
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
    i_ticketPending=-1,i_ticket,i_digits,temp_orderType,
-   i_win=0,i_loss=0,i_stateSum=0;
+   i_win=0,i_loss=0;
    bool res,isNewBar,success,b_enter=false;
    double
    f_liveSequenceLosses = 0.0,f_stddevCurr=0.0,f_stddevCurrPrev=0.0,f_orderProfit=0.0,f_time=0.0,temp_lots=0.0,temp_price=0.0,
@@ -451,7 +451,6 @@ if (m_tradeFlag[i]==true) {
 	      
 	  
    	  // Signals
-	  i_stateSum = m_state[i,0] + m_state[i,1] + m_state[i,2] + m_state[i,3];
 	  if (m_sequenceEndedFlag[i]) {
 	  	// in case of a win, close other trades only if they are all still pending
 		if (m_state[i,0]<2 && m_state[i,1]<2 && m_state[i,2]<2 && m_state[i,3]<2) {		
@@ -469,7 +468,7 @@ if (m_tradeFlag[i]==true) {
 			   m_signal[i,3] = 1;
 		 }
 		 // there should always be 4 orders (pending or not) unless we hit TP in which case m_sequenceEndedFlag[i]=true
-		 else if (i_stateSum<4 && i_stateSum>0) {							
+		 else if (m_state[i,0]==0 || m_state[i,1]==0 || m_state[i,2]==0 || m_state[i,3]==0) {							
 			if (m_state[i,0]==0) {m_signal[i,0] = 1; }		// open pending
 			if (m_state[i,1]==0) {m_signal[i,1] = 1; }
 			if (m_state[i,2]==0) {m_signal[i,2] = 1; }
