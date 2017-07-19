@@ -328,7 +328,6 @@ void OnTimer() //void OnTick()
    bool m_close[][4];
    bool m_sequenceEndedFlag[];
    bool m_insideTradingHours[];
-   int m_winTradeIndex[];
    string s_comment,s_orderSymbol,s_liveSequenceLosses;
    double temp_sequence[2];
    
@@ -338,13 +337,11 @@ void OnTimer() //void OnTick()
    ArrayResize(m_close,i_namesNumber,0);
    ArrayResize(m_sequenceEndedFlag,i_namesNumber,0);
    ArrayResize(m_insideTradingHours,i_namesNumber,0);
-   ArrayResize(m_winTradeIndex,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
    ArrayInitialize(m_open,false);
    ArrayInitialize(m_close,false);
    ArrayInitialize(m_sequenceEndedFlag,false);
    ArrayInitialize(m_insideTradingHours,false);
-   ArrayInitialize(m_winTradeIndex,10);
    
    isNewBar=isNewBar();
    if(Bars < 100)                       // Not enough bars
@@ -376,7 +373,6 @@ if (m_tradeFlag[i]==true) {
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
 					m_sequence[i][j] = 1; 
-					m_winTradeIndex[i] = j;
 				} 
 				m_state[i,j] = 0;
 				Alert("Buy Trade ",m_ticket[i,j]," has been closed with profit ",f_orderProfit,". Sequence Complete? ",m_sequenceEndedFlag[i]);
@@ -465,10 +461,10 @@ if (m_tradeFlag[i]==true) {
 		 }
 		 // there should always be 4 orders (pending or not) unless we hit TP in which case m_sequenceEndedFlag[i]=true
 		 else if (m_state[i,0]==0 || m_state[i,1]==0 || m_state[i,2]==0 || m_state[i,3]==0) {							
-			if (m_state[i,0]==0) {m_signal[i,0] = 1; }		// open pending
-			if (m_state[i,1]==0) {m_signal[i,1] = 1; }
-			if (m_state[i,2]==0) {m_signal[i,2] = 1; }
-			if (m_state[i,3]==0) {m_signal[i,3] = 1; }
+			if (m_state[i,0]==0 && m_state[i,1]>0 ) {m_signal[i,0] = 1; }		// open pending
+			if (m_state[i,0]>0  && m_state[i,1]==0) {m_signal[i,1] = 1; }
+			if (m_state[i,2]==0 && m_state[i,3]>0 ) {m_signal[i,2] = 1; }
+			if (m_state[i,2]>0  && m_state[i,3]==0) {m_signal[i,3] = 1; }
 		 }
 		 else {
 			// do nothing - normal operation
