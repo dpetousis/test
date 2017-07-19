@@ -369,16 +369,6 @@ if (m_tradeFlag[i]==true) {
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
 				f_orderProfit = OrderProfit()+OrderCommission()+OrderSwap();
-				/**
-				// This adds profit from trades that have not breached the cap to martingale losses
-				if (f_orderProfit>0) {
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit); 
-				}
-				// if sequence exceeds cap, add the loss to the martingale losses
-				else if (f_orderProfit<0) {
-					f_martingaleLosses = MathMin(0,f_martingaleLosses + f_orderProfit);
-				}
-				**/
 				// update state, sequence and ticket
 				if (f_orderProfit>0) { 
 					m_sequenceEndedFlag[i] = true;
@@ -419,7 +409,7 @@ if (m_tradeFlag[i]==true) {
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
       	 // When not in sequence, check for signal to enter
-      	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0) {
+      	 if (m_sequence[i][0]==1 && m_state[i,0]==0 && m_state[i,1]==0 && && m_state[i,2]==0 && && m_state[i,3]==0) {
       	      f_stddevCurr = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,0) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,0);
 	    f_stddevCurrPrev = iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_UPPER,1) - iBands(m_names[i],PERIOD_M5,i_maAveragingPeriod,f_bandsStdev,0,PRICE_CLOSE,MODE_LOWER,1);
 	    b_enter = (f_stddevCurr<m_stddevThreshold[i]) && (f_stddevCurrPrev>m_stddevThreshold[i]) && (b_enterNewSequences) && (m_insideTradingHours[i]);  // 
