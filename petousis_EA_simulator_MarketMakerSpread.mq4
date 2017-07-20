@@ -465,6 +465,8 @@ if (m_tradeFlag[i]==true) {
 			if (m_state[i,0]>0  && m_state[i,1]==0) {m_signal[i,1] = 1; }
 			if (m_state[i,2]==0 && m_state[i,3]>0 ) {m_signal[i,2] = 1; }
 			if (m_state[i,2]>0  && m_state[i,3]==0) {m_signal[i,3] = 1; }
+			if (m_state[i,0]==0 && m_state[i,1]==0 && m_state[i,2]==1 && m_state[i,3]==1) { m_signal[i,2] = -1; m_signal[i,3] = -1; }
+			if (m_state[i,0]==1 && m_state[i,1]==1 && m_state[i,2]==0 && m_state[i,3]==0) { m_signal[i,0] = -1; m_signal[i,1] = -1; }
 		 }
 		 else {
 			// do nothing - normal operation
