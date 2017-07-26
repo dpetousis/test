@@ -34,14 +34,15 @@ bool b_long = true;
 bool b_short = true;
 input bool b_VWAP = true;
 input bool b_noNewSequence = false;
-input string s_inputFileName = "TF_DEMO_H1_100_5_BOLLINGER.txt"; 
+input string s_inputFileName = "TF_DEMO_H4_100_5_BOLLINGER.txt"; 
 bool b_lockIn = true;
 //bool b_trailingSL = false;
 bool b_orderSizeByLabouchere = true;
 //bool b_safetyFactor = false;
 //bool b_writeToFile = false;
 bool b_sendEmail=false;
-input int i_stratMagicNumber = 38;    // Always positive
+// always positive
+input int i_stratMagicNumber = 39; 
 // if 0,23 it trades nonstop
 int const i_hourStart = 0;       
 int const i_hourEnd = 23;
