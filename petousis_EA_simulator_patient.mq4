@@ -1069,6 +1069,36 @@ if (b_lockIn) {
    return false;
   }
   
+  bool readTradeComment(int myMagicNumber,string symbol, double &output[])
+  {
+   string result[];
+   ushort u_sep=StringGetCharacter("_",0);
+   int temp;
+   bool flag=false;
+   ArrayInitialize(output,0);
+   for(int i=OrdersTotal()-1; i>=0; i--) {
+	   if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol) {
+	      temp = StringSplit(OrderComment(),u_sep,result);
+	      if (ArraySize(result)<3) { 
+		PrintFormat("Comment format is wrong for live order for %s",symbol); 
+	      }
+	      else {
+	       output[0] = StrToDouble(result[2]);   // sequence number
+	       output[1] = OrderTicket();		// ticket number
+	       if (OrderType()<2) { output[2] = 1; }	// state
+	       else { output[2] = 2; }
+	       output[3] = OrderTakeProfit();		// TP
+	       output[4] = OrderStopLoss();		// SL
+	       output[5] = OrderOpenPrice();		// open price
+	       output[6] = OrderLots();
+	       flag = true;
+	       if (flag==true) { break; }
+	      }
+	   }
+   }
+   return flag;
+  }
+  
   double accCcyFactor(string symbol)
   {
       // initialize m_accountCcyFactors
