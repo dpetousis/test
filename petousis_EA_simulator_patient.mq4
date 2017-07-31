@@ -963,65 +963,51 @@ if (b_lockIn) {
    }
    return 0;
   }
-  /**
-  // magic number list
-   if (StringCompare(StringSubstr(symbol,0,6),"EURUSD",false) == 0) { return stratMagicNumber*1000000 + 010000 + timeFrame; }          // G8 pairs
-   else if (StringCompare(StringSubstr(symbol,0,6),"USDJPY",false) == 0) { return stratMagicNumber*1000000 + 020000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"GBPUSD",false) == 0) { return stratMagicNumber*1000000 + 030000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"AUDUSD",false) == 0) { return stratMagicNumber*1000000 + 040000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"NZDUSD",false) == 0) { return stratMagicNumber*1000000 + 050000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"EURJPY",false) == 0) { return stratMagicNumber*1000000 + 060000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"AUDJPY",false) == 0) { return stratMagicNumber*1000000 + 070000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"EURAUD",false) == 0) { return stratMagicNumber*1000000 + 080000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"USDCAD",false) == 0) { return stratMagicNumber*1000000 + 090000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"EURGBP",false) == 0) { return stratMagicNumber*1000000 + 100000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"USDCHF",false) == 0) { return stratMagicNumber*1000000 + 110000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"EURCHF",false) == 0) { return stratMagicNumber*1000000 + 120000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"GBPAUD",false) == 0) { return stratMagicNumber*1000000 + 130000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"EURCAD",false) == 0) { return stratMagicNumber*1000000 + 140000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"EURNZD",false) == 0) { return stratMagicNumber*1000000 + 150000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"GBPCHF",false) == 0) { return stratMagicNumber*1000000 + 160000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"GBPJPY",false) == 0) { return stratMagicNumber*1000000 + 170000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"GBPCAD",false) == 0) { return stratMagicNumber*1000000 + 180000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"GBPNZD",false) == 0) { return stratMagicNumber*1000000 + 190000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"CHFJPY",false) == 0) { return stratMagicNumber*1000000 + 200000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"AUDCHF",false) == 0) { return stratMagicNumber*1000000 + 210000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"CADCHF",false) == 0) { return stratMagicNumber*1000000 + 220000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"NZDCHF",false) == 0) { return stratMagicNumber*1000000 + 230000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"CADJPY",false) == 0) { return stratMagicNumber*1000000 + 240000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"NZDJPY",false) == 0) { return stratMagicNumber*1000000 + 250000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"AUDCAD",false) == 0) { return stratMagicNumber*1000000 + 260000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"AUDNZD",false) == 0) { return stratMagicNumber*1000000 + 270000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"NZDCAD",false) == 0) { return stratMagicNumber*1000000 + 280000 + timeFrame; }
-   
-   else if (StringCompare(StringSubstr(symbol,0,6),"USDSGD",false) == 0) { return stratMagicNumber*1000000 + 290000 + timeFrame; }       //SGD and other EM pairs
-   else if (StringCompare(StringSubstr(symbol,0,6),"USDTRY",false) == 0) { return stratMagicNumber*1000000 + 300000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"USDNOK",false) == 0) { return stratMagicNumber*1000000 + 310000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"EURSGD",false) == 0) { return stratMagicNumber*1000000 + 320000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"GBPSGD",false) == 0) { return stratMagicNumber*1000000 + 330000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"SGDJPY",false) == 0) { return stratMagicNumber*1000000 + 340000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"NZDSGD",false) == 0) { return stratMagicNumber*1000000 + 350000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"CADSGD",false) == 0) { return stratMagicNumber*1000000 + 360000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"CHFSGD",false) == 0) { return stratMagicNumber*1000000 + 370000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"AUDSGD",false) == 0) { return stratMagicNumber*1000000 + 380000 + timeFrame; }
-   
-   else if (StringCompare(StringSubstr(symbol,0,6),"XAUUSD",false) == 0) { return stratMagicNumber*1000000 + 710000 + timeFrame; }       // gold and silver
-   else if (StringCompare(StringSubstr(symbol,0,6),"XAUEUR",false) == 0) { return stratMagicNumber*1000000 + 720000 + timeFrame; }
-   else if (StringCompare(StringSubstr(symbol,0,6),"XAGUSD",false) == 0) { return stratMagicNumber*1000000 + 730000 + timeFrame; }
-   
-   else if (StringCompare(symbol,"SPX500",false) == 0) { return stratMagicNumber*1000000 + 810000 + timeFrame; }
-   else if (StringCompare(symbol,"US30",false) == 0) { return stratMagicNumber*1000000 + 820000 + timeFrame; }
-   else if (StringCompare(symbol,"UK100",false) == 0) { return stratMagicNumber*1000000 + 830000 + timeFrame; }
-   else if (StringCompare(symbol,"FRA40",false) == 0) { return stratMagicNumber*1000000 + 840000 + timeFrame; }
-   else if (StringCompare(symbol,"ESTX50",false) == 0) { return stratMagicNumber*1000000 + 850000 + timeFrame; }
-   else if (StringCompare(symbol,"WTI",false) == 0) { return stratMagicNumber*1000000 + 860000 + timeFrame; }
-   else if (StringCompare(symbol,"BRENT",false) == 0) { return stratMagicNumber*1000000 + 870000 + timeFrame; }
-   else { 
-      return stratMagicNumber*1000000 + 990000 + timeFrame; 
-      Alert("THIS IS UNDECLARED CROSS - The backup magic number is assigned.");
+  
+  bool readTradeComment(int ticket,string symbol,bool b_searchHistory, double &output[])
+  {
+   string result[];
+   ushort u_sep=StringGetCharacter("_",0);
+   int temp;
+   ArrayInitialize(output,0);
+   if (b_searchHistory) {
+         if(OrderSelect(i,SELECT_BY_TICKET,MODE_HISTORY)) {
+            temp = StringSplit(OrderComment(),u_sep,result);
+            if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); break; }
+            output[0] = StrToDouble(result[1]); //vwap
+            output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
+            output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false);
+            temp = StringFind(result[3],"[");
+            if (temp<0) {
+               output[2] = StrToDouble(result[3]); } // trade number
+            else if (temp==1) {
+               output[2] = StrToDouble(StringSubstr(result[3],0,1)); }
+            else if (temp==2) {
+               output[2] = StrToDouble(StringSubstr(result[3],0,2)); }
+            return true;
+         }
+         else  {
+            return false; 
+         }
    }
+   else {
+         if(OrderSelect(i,SELECT_BY_TICKET,MODE_TRADES)) {
+            temp = StringSplit(OrderComment(),u_sep,result);
+            if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for %s",symbol); break; }
+            output[0] = StrToDouble(result[1]); //vwap
+            output[1] = StrToDouble(result[2]);   // cum loss
+            output[2] = StrToDouble(result[3]); // trade number
+            output[3] = 0.0;
+            return true;
+         }
+         else  {
+            return false; 
+         }
+      }
+   }
+   return false;
   }
-  **/
+  
   bool readLastTradeSubComment(int myMagicNumber,string symbol,bool b_searchHistory, double &output[])
   {
    string result[];
@@ -1069,7 +1055,7 @@ if (b_lockIn) {
    return false;
   }
   
-  bool readTradeComment(int myMagicNumber,string symbol, double &output[])
+  bool readTradeCommentfromMM(int myMagicNumber,string symbol, double &output[])
   {
    string result[];
    ushort u_sep=StringGetCharacter("_",0);
