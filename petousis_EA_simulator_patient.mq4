@@ -369,6 +369,37 @@ void OnTimer() //void OnTick()
          }
       }
       }
+
+// UPDATE STATUS/////////////////////////////////////////////////////////////////////////////////////////////////////
+for(int i=0; i<i_namesNumber; i++) {
+      if (m_tradeFlag[i]==true) {
+      		if (m_ticket[i]>0) {
+			res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
+			if (res) {
+				if (OrderCloseTime()>0) {			// if closed
+					if (readTradeComment(m_ticket[i],m_names[i],false,temp_sequence)) {
+						if (temp_sequence[1]>0) {	//ie trade sequence closed positive 
+							m_ticket[i] = 0;
+						} 
+						m_isPositionOpen[i]=false;
+						m_ticketPositionPending[i] = false;
+					}
+				}
+				else {
+					if (OrderType()==OP_BUY || OrderType()==OP_SELL) { 
+						m_isPositionOpen[i]=true;
+						m_ticketPositionPending[i] = false; }
+					else { 
+						m_isPositionOpen[i]=false;
+						m_ticketPositionPending[i] = true; 
+					}
+				}
+			}
+			else { Alert("Failed to select trade: ",m_ticket[i]); }
+		}
+      }
+}
+
 // ORDERS ACCOUNTING ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if (b_lockIn) {
    for(int k=OrdersTotal()-1; k>=0; k--) {
