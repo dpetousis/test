@@ -971,12 +971,13 @@ if (b_lockIn) {
    int temp;
    ArrayInitialize(output,0);
    if (b_searchHistory) {
-         if(OrderSelect(i,SELECT_BY_TICKET,MODE_HISTORY)) {
+         if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_HISTORY)) {
             temp = StringSplit(OrderComment(),u_sep,result);
             if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); break; }
             output[0] = StrToDouble(result[1]); //vwap
             output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
             output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false);
+	    output[4] = OrderTicket();
             temp = StringFind(result[3],"[");
             if (temp<0) {
                output[2] = StrToDouble(result[3]); } // trade number
@@ -991,13 +992,14 @@ if (b_lockIn) {
          }
    }
    else {
-         if(OrderSelect(i,SELECT_BY_TICKET,MODE_TRADES)) {
+         if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES)) {
             temp = StringSplit(OrderComment(),u_sep,result);
             if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for %s",symbol); break; }
             output[0] = StrToDouble(result[1]); //vwap
             output[1] = StrToDouble(result[2]);   // cum loss
             output[2] = StrToDouble(result[3]); // trade number
             output[3] = 0.0;
+	    output[4] = OrderTicket();
             return true;
          }
          else  {
@@ -1022,6 +1024,7 @@ if (b_lockIn) {
             output[0] = StrToDouble(result[1]); //vwap
             output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
             output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false);
+	    output[4] = OrderTicket();
             temp = StringFind(result[3],"[");
             if (temp<0) {
                output[2] = StrToDouble(result[3]); } // trade number
@@ -1045,6 +1048,7 @@ if (b_lockIn) {
             output[1] = StrToDouble(result[2]);   // cum loss
             output[2] = StrToDouble(result[3]); // trade number
             output[3] = 0.0;
+	    output[4] = OrderTicket();
             return true;
          }
          else  {
