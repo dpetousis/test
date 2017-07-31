@@ -85,7 +85,7 @@ int m_ticket[];
 //int directionLastOpenedTrade=0; // 0:no trade yet, 1: buy, -1:sell
 int h;
 int i_labouchereLosses=0;
-double temp_sequence[4];
+double temp_sequence[5];
 int i_ordersHistoryTotal=OrdersHistoryTotal();
 
 //+------------------------------------------------------------------+
@@ -170,7 +170,8 @@ int OnInit()
       // initialize m_sequence  
       m_sequence[i][0] = -1.0;      //Initialize to -1,0,0      
       if (isPositionOpen(m_myMagicNumber[i],m_names[i])) {                                                       // check if trade open
-         if (readLastTradeSubComment(m_myMagicNumber[i],m_names[i],false,temp_sequence)) {
+	 m_ticket[i] = OrderTicket();
+	 if (readTradeComment(m_ticket[i],m_names[i],false,temp_sequence)) {
             for (int j=0;j<3;j++) {
                m_sequence[i][j] = temp_sequence[j];
             }
@@ -178,30 +179,34 @@ int OnInit()
          }
          else { PrintFormat("Cannot read open trade comment %s",m_names[i]); }
       }
+      /**
       else {                                                                                                          // if not open check in closed trades
          if (readLastTradeSubComment(m_myMagicNumber[i],m_names[i],true,temp_sequence)) {
             if (temp_sequence[1]>=0) {                  // sequence ended
                m_sequence[i][0] = -1.0;
                m_sequence[i][1] = 0.0;
                m_sequence[i][2] = 0.0;
+	       m_ticket[i] = 0;
             }
             else if (temp_sequence[1]<0 && temp_sequence[3]<2400) {          // sequence not ended but no new position for less than XXX bars, likely a stoploss
                for (int j=0;j<3;j++) {
                   m_sequence[i][j] = temp_sequence[j];
                }
+	       m_ticket[i] = temp_sequence[4];
                m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0);
             }
             else {                                                         // sequence not ended but no new position for more than XXX bars, likely a stoploss, continue sequence but reset VWAP
                m_sequence[i][0] = -1.0;                                    // reset VWAP
                m_sequence[i][1] = temp_sequence[1];
                m_sequence[i][2] = temp_sequence[2];
+	       m_ticket[i] = temp_sequence[4];
                m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0);
             }
          }
          else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
       }
       //Print(m_sequence[i][0],"_",m_sequence[i][1],"_",m_sequence[i][2]);
-      
+      **/
    }
    
    Alert ("Function init() triggered at start for ",symb);// Alert
