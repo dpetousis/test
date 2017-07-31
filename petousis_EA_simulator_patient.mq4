@@ -286,7 +286,6 @@ void OnTimer() //void OnTick()
    bool m_closeSell[];
    bool m_isPositionOpen[];
    int m_ticketPositionPending[];
-   double m_orderLots[];
    double m_VWAP[];
    int m_orderTickets[];
    string s_comment,s_orderSymbol;
@@ -298,8 +297,7 @@ void OnTimer() //void OnTick()
    ArrayResize(m_closeBuy,i_namesNumber,0);
    ArrayResize(m_closeSell,i_namesNumber,0);
    ArrayResize(m_isPositionOpen,i_namesNumber,0);
-   ArrayResize(m_ticketPositionPending,i_namesNumber,0);
-   ArrayResize(m_orderLots,i_namesNumber,0);
+   ArrayResize(m_ticketPositionPending,i_namesNumber,0);  
    ArrayResize(m_VWAP,i_namesNumber,0);
    ArrayResize(m_orderTickets,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
@@ -309,7 +307,6 @@ void OnTimer() //void OnTick()
    ArrayInitialize(m_closeSell,false);
    ArrayInitialize(m_isPositionOpen,false);
    ArrayInitialize(m_ticketPositionPending,-1);
-   ArrayInitialize(m_orderLots,0);
    ArrayInitialize(m_VWAP,0);
    ArrayInitialize(m_orderTickets,0);
    count++;
@@ -431,55 +428,6 @@ if (b_lockIn) {
       else { Alert("Order could not be selected for lock in"); }
    }
 }
-/**
-   for(int i=0; i<i_namesNumber; i++) {
-   
-   total=OrdersTotal();                                     // Amount of orders
-   ticket = OrderTicket();
-   orderType = OrderType();
-   orderOpenPrice = OrderOpenPrice();
-   orderStopLoss = OrderStopLoss();
-   orderTakeProfit = OrderTakeProfit();
-   orderLots = OrderLots();
-   //TRAILING STOP LOSS & TAKE PROFIT & LOCKIN
-   if (isPositionOpen && OrderCloseTime()==0) {
-      if (orderType==OP_BUY) {                //buy
-         // LOCKIN
-         if (b_lockIn && (orderStopLoss<orderOpenPrice)) {        
-            if (Bid-orderOpenPrice>f_lockIn*Point) {   // lockin trailing can dependent on volatility
-               if (orderStopLoss < orderOpenPrice + b_commission) {
-                  res = OrderModify(ticket,orderOpenPrice,orderOpenPrice + b_commission,orderTakeProfit,0,Blue);
-                  if (!res) {
-                     Alert("Error in OrderModify. Error code=", GetLastError(),symb);
-                     if (symb=="SPX500") {
-                        Alert("point is:",Point," stoploss:",orderOpenPrice + b_commission);
-                     }
-                  }
-                  else {
-                     Alert("Order modified successfully.");
-                  }
-               }
-            }
-         }
-         // TRAILING STOP LOSS
-         if (b_trailingSL) {
-            if (Bid-orderOpenPrice>f_trailingSL*Point) {
-               trailingStop = Bid - f_trailingSL*Point + b_commission;
-               orderStopLoss = OrderStopLoss();
-               if (orderStopLoss<trailingStop) {
-                  res = OrderModify(ticket,orderOpenPrice,trailingStop,orderTakeProfit,0,Blue);
-                  if (!res) {
-                     Alert("Error in OrderModify. Error code=", GetLastError(),symb);
-                  }
-                  else {
-                     Alert("Order modified successfully.");
-                  }
-               }
-            }
-         }
-         
-      
-   **/
 
 // CLOSING TRADE CRITERIA  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
@@ -488,12 +436,10 @@ if (b_lockIn) {
          if (m_isPositionOpen[i]) {
             if ((m_signal[i] < 0) && OrderType()==OP_BUY) {
                m_closeBuy[i]=true;
-               m_orderLots[i] = OrderLots();
                m_orderTickets[i] = OrderTicket();
             }                   // CLOSE trade if get opposite signal, use T1 signal to avoid false knockouts
             else if ((m_signal[i] >0) && OrderType()==OP_SELL) {
                m_closeSell[i]=true;
-               m_orderLots[i] = OrderLots();
                m_orderTickets[i] = OrderTicket();
             }
          }     
@@ -560,38 +506,6 @@ if (b_lockIn) {
       }
   }
   }
-
-// CHECK THAT ORDERS HAVE NOT BEEN CLOSED MANUALLY OR BY SL SINCE LAST TICK /////////////////////////////////////////////////////////////////
-   new_ordersHistoryTotal = OrdersHistoryTotal();
-   if (new_ordersHistoryTotal - i_ordersHistoryTotal > 0) {         // there is at least one new closed trade
-      for(int k=new_ordersHistoryTotal-1; k>=i_ordersHistoryTotal; k--) {        // loop through the latest closed orders
-         temp_flag = OrderSelect(k,SELECT_BY_POS,MODE_HISTORY);
-         temp_magic = OrderMagicNumber();
-         if(temp_flag && ((double)temp_magic/100>i_stratMagicNumber) && ((double)temp_magic/100<i_stratMagicNumber+1)) {    // if closed order belongs to this strategy
-            temp_i = -1;
-            for(int i=0; i<i_namesNumber; i++) {                                                  // find the row of the product
-               if (temp_magic == m_myMagicNumber[i]) { temp_i = i; }
-            }
-            if (temp_i < 0) { break; }                                                          // if product not in list traded, exit
-            else {
-               temp_flag = readLastTradeSubComment(temp_magic,m_names[temp_i],true,temp_sequence);        // if in list of products, read the comment
-               if (temp_flag) {
-                  if (temp_sequence[1] >= 0) {                             // if sequence just ended -> reset
-                     m_sequence[temp_i][0] = -1.0;
-                     m_sequence[temp_i][1] = 0.0;
-                     m_sequence[temp_i][2] = 0.0;
-                  }
-                  else { m_sequence[temp_i][1] = temp_sequence[1]; }       // if sequence not ended, update cumulative loss
-               }
-               else {
-                  PrintFormat("Cannot read closed trade comment %s",m_names[temp_i]);
-               }
-            }
-         }
-      }
-   }
-   i_ordersHistoryTotal = new_ordersHistoryTotal;        // update
-   
    
 // OPENING TRADING CRITERIA  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    // no trades on sundays, late and early in the day, earlier stop on fridays
@@ -633,46 +547,6 @@ if (b_lockIn) {
       }
       }
    //}
- 
- // ORDER SIZE WARPING //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
- /**
- if (b_orderSizeByVol) {
-    if (openBuy || openSell) {
-      if (f_vol>f_highVolThreshold) {
-         lots = sizeConst * f_highVolFactor;
-      }
-      else if (f_vol<f_lowVolThreshold) {
-         lots = sizeConst * f_lowVolFactor;
-      }
-      else { lots = sizeConst * f_midVolFactor; }
-    }
- }
- **/
- /**
- if (b_orderSizeByLabouchere) {         
-    for(int i=0; i<i_namesNumber; i++) {
-      if ((m_openBuy[i]==true) || (m_openSell[i]==true))  {
-         //m_labouchereLosses[i] = labouchereLosses(m_myMagicNumber[i],m_names[i,0]); 
-
-         //This is actually the martingale betting system capped, Labouchere only leads to more profits if strategy is already profitable under constant bet size
-         //Otherwise it leads to magnified losses.  
-         //m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,3]) * m_accountCcyFactors[i] * MathPow(2.0,MathMin(3,(double)m_labouchereLosses[i])),2);
-         // Adjust by loss martingale
-         f_weightedLosses = m_sequence[i][1]/(MarketInfo(m_names[i,0],MODE_LOTSIZE)*StrToDouble(m_names[i,3])*StrToDouble(m_names[i,4]));    // sum of losses over stoploss in USD
-         m_lots[i] = MathMax(0.01,NormalizeDouble(((1 - f_weightedLosses) * StrToDouble(m_names[i,3]) * m_accountCcyFactors[i]),2));            // add standard notional to weighted losses
-         // This is the proportional system uncapped, the more the consecutive losses, the more the next win has to gain to break even.
-         // Capping the losses to a certain number of pips,one can know how big that win has to be to be always profitable 
-         //m_lots[i] = NormalizeDouble(StrToDouble(m_names[i,3]) * m_accountCcyFactors[i] * (1 + MathMin(5,(double)m_labouchereLosses[i])),2);
-         // This is the breakeven sequence system 
-         //int m_breakevenSeq[6]={1,1,2,4,8,16};
-         //lots = sizeConst * m_breakevenSeq[MathMin(5,i_labouchereLosses)];
-         // This is the (breakeven + 1) sequence system 
-         //int m_breakevenSeq[6]={1,1,3,6,12,24};
-         //lots = sizeConst * m_breakevenSeq[MathMin(5,i_labouchereLosses)];
-      }
-    }
- }
-**/
  
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
