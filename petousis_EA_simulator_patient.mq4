@@ -485,7 +485,6 @@ if (b_lockIn) {
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
       if (m_signal[i] != 0) {
-         m_isPositionOpen[i]=isPositionOpen(m_myMagicNumber[i],m_names[i]);
          if (m_isPositionOpen[i]) {
             if ((m_signal[i] < 0) && OrderType()==OP_BUY) {
                m_closeBuy[i]=true;
@@ -499,23 +498,6 @@ if (b_lockIn) {
             }
          }     
       }
-      /**
-      if (m_sinewave[i] != 0) {
-         m_isPositionOpen[i]=isPositionOpen(m_myMagicNumber[i],m_names[i,0]);
-         if (m_isPositionOpen[i]) {
-            if ((m_sinewave[i] < 0) && OrderType()==OP_BUY) {
-               m_closeBuy[i]=true;
-               m_orderLots[i] = OrderLots();
-               m_orderTickets[i] = OrderTicket();
-            }                   // CLOSE trade if get opposite signal, use T1 signal to avoid false knockouts
-            else if ((m_sinewave[i] >0) && OrderType()==OP_SELL) {
-               m_closeSell[i]=true;
-               m_orderLots[i] = OrderLots();
-               m_orderTickets[i] = OrderTicket();
-            }
-         }     
-      }
-      **/
    }
    }
    
@@ -531,15 +513,13 @@ if (b_lockIn) {
             res = OrderClose(m_orderTickets[i],m_orderLots[i],MarketInfo(m_names[i],MODE_BID),100);          // slippage 100, so it always closes
             if (res==true) {
                Alert("Order Buy closed."); 
-               Sleep(2000);              // wait a bit to open new trade
-               if (readLastTradeSubComment(m_myMagicNumber[i],m_names[i],true,temp_sequence)) {
+               if (readTradeComment(m_ticket[i],m_names[i],true,temp_sequence)) {
                   if (temp_sequence[1] >= 0) {            // sequence just ended
                      m_sequence[i][0] = -1.0;
                      m_sequence[i][1] = 0.0;
                      m_sequence[i][2] = 0.0;
                   }
                   else { m_sequence[i][1] = temp_sequence[1]; }
-                  i_ordersHistoryTotal = OrdersHistoryTotal();
                }
                else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
                break;
