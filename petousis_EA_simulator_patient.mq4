@@ -48,9 +48,6 @@ int const i_hourStart = 0;
 int const i_hourEnd = 23;
 int const i_hourEndFriday = 23;
 input double const f_deviationPerc = 2.5;
-// sinewave
-//int sinewave_duration = 300;   
-//int sinewave_superSmootherMemory = 80;
 // filter 
 //input int filter_cutoff = 10;
 input int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
@@ -82,6 +79,7 @@ double m_filter[][2];      // vwap,filter freq
 double m_profitInUSD[];
 int m_lotDigits[];
 double m_lotMin[];
+int m_ticket[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //int directionLastOpenedTrade=0; // 0:no trade yet, 1: buy, -1:sell
@@ -128,6 +126,7 @@ int OnInit()
    ArrayInitialize(m_profitInUSD,0.0);
    ArrayInitialize(m_lotDigits,0.0);
    ArrayInitialize(m_lotMin,0.0);
+   ArrayInitialize(m_ticket,0);
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
    ArrayResize(m_barLastOpenedTrade,i_namesNumber,0);
@@ -142,6 +141,7 @@ int OnInit()
    ArrayResize(m_profitInUSD,i_namesNumber,0);
    ArrayResize(m_lotDigits,i_namesNumber,0);
    ArrayResize(m_lotMin,i_namesNumber,0);
+   ArrayResize(m_ticket,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -166,44 +166,7 @@ int OnInit()
       m_lotMin[i] = MarketInfo(m_names[i],MODE_MINLOT);
       // initialize m_accountCcyFactors
       m_accountCcyFactors[i] = accCcyFactor(m_names[i]);
-      /**
-      This factor defines for 1lot of each product how many USD per pip:
-      For 1lot USDXXX, 1pip is USD1/USDXXX 
-      For 1lot USDJPY, 1pip is JPY100 so 100/USDJPY
-      For 1lot XXXUSD 1pip is USD1 
-      For 1lot XAUUSD 1pip is USD1 
-      For 1lot WTI 1pip is USD10 so 10
-      For 1lot CC1CC2, 1pip is USD1/USDCC2 
-      For 1lot CC1JPY, 1pip is USD100/USDJPY 
-      For 1lot CC1CC2, 1pip is USD1/CC2USD 
-      Then by simply saying for Cash(USD)/#pips how many lots, we can use the formula lots=Cash(USD)/#pips/Factor
-      if (StringCompare(StringSubstr(m_names[i],0,3),AccountCurrency(),false)==0) {
-          if (StringCompare(StringSubstr(m_names[i],3,3),"JPY",false)==0) {
-              m_accountCcyFactors[i] = 100 / MarketInfo(m_names[i],MODE_BID); }
-          else { m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[i],MODE_BID); }
-      }
-      else if (StringCompare(StringSubstr(m_names[i],3,3),AccountCurrency(),false)==0) {
-              m_accountCcyFactors[i] = 1.0; }
-      else if (StringCompare(StringSubstr(m_names[i],0,3),"WTI",false)==0) {
-            m_accountCcyFactors[i] = 10.0; 
-         }
-      else { 
-         int k = getName(StringSubstr(m_names[i],3,3),"USD");
-         if (k>=0) {
-            if (StringFind(m_names[k],"USD")==0) {
-               if (StringFind(m_names[k],"USDJPY")>=0) {
-                  m_accountCcyFactors[i] = 100 / MarketInfo(m_names[k],MODE_BID); }
-               else {
-                  m_accountCcyFactors[i] = 1.0 / MarketInfo(m_names[k],MODE_BID); }
-            }
-            else if (StringFind(m_names[k],"USD")==3) {
-               m_accountCcyFactors[i] = MarketInfo(m_names[k],MODE_BID); } 
-         } 
-         else {
-            m_accountCcyFactors[i] = 1.0;       // not a currency
-         }
-      }
-      **/
+      
       // initialize m_sequence  
       m_sequence[i][0] = -1.0;      //Initialize to -1,0,0      
       if (isPositionOpen(m_myMagicNumber[i],m_names[i])) {                                                       // check if trade open
