@@ -46,7 +46,7 @@ input int i_stratMagicNumber = 39;
 int const i_hourStart = 0;       
 int const i_hourEnd = 23;
 int const i_hourEndFriday = 23;
-input double const f_deviationPerc = 2.5;
+input double const f_deviationPerc = 1.5;
 // filter 
 //input int filter_cutoff = 10;
 input int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
@@ -225,7 +225,7 @@ void OnTimer() //void OnTick()
    f_winPerc=0,f_zeroCurveDiff=0,temp_vwap=-1.0,
    f_weightedLosses = 0.0,
    f_enterValue1=0.0,f_vol=0.0,
-   SL,TP,BID,ASK,f_central,f_band,
+   SL,TP,BID,ASK,f_central,f_bandLower,f_bandUpper,
    f_avgWin = 0, f_avgLoss = 0,
    f_orderOpenPrice,f_orderStopLoss,
    f_filterPrev = 0,f_filter = 0,temp_T1=0,f_VWAP=0;
@@ -311,9 +311,10 @@ for(int i=0; i<i_namesNumber; i++) {
          
          if (temp_T1 > 0.001) {              // previous
             if (m_sequence[i][2]<1) {         // new sequence, so update the pips
-              f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
-              f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-              m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(f_band-f_central),0);
+              //f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
+              f_bandLower = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+              f_bandUpper = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+	      m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(f_band-f_central),0);
             }
             if (temp_T1 > m_VWAP[i] && m_positionDirection[i]<1 && b_long) {
                m_signal[i] = 1;
