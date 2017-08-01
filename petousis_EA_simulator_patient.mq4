@@ -314,7 +314,7 @@ for(int i=0; i<i_namesNumber; i++) {
               //f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
               f_bandLower = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
               f_bandUpper = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-	      m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(f_band-f_central),0);
+	      m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * (f_bandUpper-f_bandLower),0);
             }
             if (temp_T1 > m_VWAP[i] && m_positionDirection[i]<1 && b_long) {
                m_signal[i] = 1;
