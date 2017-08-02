@@ -263,7 +263,6 @@ for(int i=0; i<i_namesNumber; i++) {
 				if (OrderCloseTime()>0) {			// if closed
 					if (readTradeComment(m_ticket[i],m_names[i],false,temp_sequence)) {
 						if (temp_sequence[1]>0) {	//ie trade sequence closed positive 
-							m_ticket[i] = 0;
 							m_sequence[i][0] = -1;
 							m_sequence[i][1] = 0;
 							m_sequence[i][2] = 0; }
@@ -275,6 +274,7 @@ for(int i=0; i<i_namesNumber; i++) {
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = false;
 						m_positionDirection[i] = 0;
+						m_ticket[i] = 0;
 					}
 				}
 				else {
