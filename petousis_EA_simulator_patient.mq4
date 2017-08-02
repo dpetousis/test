@@ -153,7 +153,9 @@ int OnInit()
       m_sequence[i][0] = -1.0;      //Initialize to -1,0,0      
       if (isPositionOpen(m_myMagicNumber[i],m_names[i])) {                                                       // check if trade open
 		 m_ticket[i] = OrderTicket();
-		 if (readTradeComment(m_ticket[i],m_names[i],false,temp_sequence)) {
+		 ///////////////////////////////////////////////////////////////////////////////
+		 if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+		 //////////////////////////////////////////////////////////////////////////////
 			for (int j=0;j<3;j++) {
 			   m_sequence[i][j] = temp_sequence[j];
 			}
@@ -261,7 +263,9 @@ for(int i=0; i<i_namesNumber; i++) {
 			res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
 			if (res) {
 				if (OrderCloseTime()>0) {			// if closed
-					if (readTradeComment(m_ticket[i],m_names[i],false,temp_sequence)) {
+				////////////////////////////////////////////////////////////////////////////////
+					if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+					//////////////////////////////////////////////////////////////////////////
 						if (temp_sequence[1]>0) {	//ie trade sequence closed positive 
 							m_sequence[i][0] = -1;
 							m_sequence[i][1] = 0;
@@ -383,7 +387,9 @@ if (b_lockIn) {
 			}
             if (res==true) {
                Alert("Order Buy closed."); 
-               if (readTradeComment(m_ticket[i],m_names[i],true,temp_sequence)) {
+	       //////////////////////////////////////////////////////////////////////////////
+               if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+	       //////////////////////////////////////////////////////////////////////////////
 					m_sequence[i][1] = temp_sequence[1]; // update cum losses
                }
                else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
@@ -406,7 +412,9 @@ if (b_lockIn) {
 			}
             if (res==true) {
                Alert("Order Sell closed. "); 
-               if (readTradeComment(m_ticket[i],m_names[i],true,temp_sequence)) {
+	       /////////////////////////////////////////////////////////////////////////////
+               if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+	       ///////////////////////////////////////////////////////////////////////////
 					m_sequence[i][1] = temp_sequence[1]; // update cum losses
                }
                else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
@@ -433,10 +441,12 @@ if (b_lockIn) {
             ASK = MarketInfo(m_names[i],MODE_ASK);
             SL=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-            // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
+            //////////////////////////////////////////////////////////
+	    // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
 	    f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i]));
 	    m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-            Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
+            ////////////////////////////////////////////////////////////////
+	    Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
@@ -473,10 +483,12 @@ if (b_lockIn) {
             BID = MarketInfo(m_names[i],MODE_BID);
             SL=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-            // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
+            /////////////////////////////////////////////////////////////////////////
+	    // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
 	    f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i]));
 	    m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-            Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
+            //////////////////////////////////////////////////////////////////////////////
+	    Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {
                if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
@@ -581,7 +593,7 @@ if (b_lockIn) {
    ushort u_sep=StringGetCharacter("_",0);
    int temp;
    ArrayInitialize(output,0);
- if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_HISTORY)) {
+ if(OrderSelect(ticket,SELECT_BY_TICKET)) {
     temp = StringSplit(OrderComment(),u_sep,result);
     if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); break; }
     output[0] = StrToDouble(result[1]); //vwap
