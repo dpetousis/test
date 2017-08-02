@@ -313,8 +313,10 @@ for(int i=0; i<i_namesNumber; i++) {
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
          temp_T1 = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],3,1);
-         m_VWAP[i] = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],2,1);       //needed at every tick
-         
+         /////////////////////////////////////////
+	 f_VWAP = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],2,1);       //needed at every tick
+         /////////////////////////////////////////////////////////
+	 
          if (temp_T1 > 0.001) {              // previous
             if (m_sequence[i][2]<1) {         // new sequence, so update the pips
               //f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
@@ -322,11 +324,17 @@ for(int i=0; i<i_namesNumber; i++) {
               f_bandUpper = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
 	      m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * (f_bandUpper-f_bandLower),0);
             }
-            if (temp_T1 > m_VWAP[i] && m_positionDirection[i]<1 && b_long) {
+            if (temp_T1 > f_VWAP && m_positionDirection[i]<1 && b_long) {
                m_signal[i] = 1;
+	       ///////////////////////////////////////////
+	       m_fixedLevel[i] = iCustom();
+	       ////////////////////////////////////////////
             }
-            else if (temp_T1 < m_VWAP[i] && m_positionDirection[i]>-1 && b_short) {
+            else if (temp_T1 < f_VWAP && m_positionDirection[i]>-1 && b_short) {
                m_signal[i] = -1;
+	       ///////////////////////////////////////////
+	       m_fixedLevel[i] = iCustom();
+	       ////////////////////////////////////////////
             }
             else {
                m_signal[i] = 0;
@@ -448,7 +456,7 @@ if (b_lockIn) {
             ////////////////////////////////////////////////////////////////
 	    Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
-               if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
+               if (m_sequence[i][0] < 0) { temp_vwap = m_fixedLevel[i]; } else { temp_vwap = m_sequence[i][0]; }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_BUYLIMIT,m_lots[i],ASK,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Buy
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
@@ -458,7 +466,7 @@ if (b_lockIn) {
                   Alert("Loss: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_bollingerDeviationInPips[i]);
                }
                else {			// Success :) 
-                  if (m_sequence[i][0] < 0) { m_sequence[i][0] = m_VWAP[i]; }       // update vwap if new sequence
+                  if (m_sequence[i][0] < 0) { m_sequence[i][0] = m_fixedLevel[i]; }       // update vwap if new sequence
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
@@ -490,7 +498,7 @@ if (b_lockIn) {
             //////////////////////////////////////////////////////////////////////////////
 	    Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {
-               if (m_sequence[i][0] < 0) { temp_vwap = m_VWAP[i]; } else { temp_vwap = m_sequence[i][0]; }
+               if (m_sequence[i][0] < 0) { temp_vwap = m_fixedLevel[i]; } else { temp_vwap = m_sequence[i][0]; }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_SELLLIMIT,m_lots[i],BID,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Sell
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
@@ -500,7 +508,7 @@ if (b_lockIn) {
                   Alert("Loss: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_bollingerDeviationInPips[i]);
                }
                else {				// Success :)
-                  if (m_sequence[i][0] < 0) { m_sequence[i][0] = m_VWAP[i]; }       // update vwap if new sequence
+                  if (m_sequence[i][0] < 0) { m_sequence[i][0] = m_fixedLevel[i]; }       // update vwap if new sequence
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
