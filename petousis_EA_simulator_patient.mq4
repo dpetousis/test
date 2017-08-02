@@ -274,7 +274,9 @@ for(int i=0; i<i_namesNumber; i++) {
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = false;
 						m_positionDirection[i] = 0;
-						m_ticket[i] = 0;
+						////////////////////////////////////////////
+						m_ticket[i] = 0; 
+						////////////////////////////////////////////
 					}
 				}
 				else {
@@ -572,52 +574,37 @@ if (b_lockIn) {
    return 0;
   }
   
-  bool readTradeComment(int ticket,string symbol,bool b_searchHistory, double &output[])
+  ///////////////////////////////////////////////////////////////////////////////////
+  bool readTradeComment(int ticket,string symbol, double &output[])
   {
    string result[];
    ushort u_sep=StringGetCharacter("_",0);
    int temp;
    ArrayInitialize(output,0);
-   if (b_searchHistory) {
-         if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_HISTORY)) {
-            temp = StringSplit(OrderComment(),u_sep,result);
-            if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); break; }
-            output[0] = StrToDouble(result[1]); //vwap
-            output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
-            output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false);
-			output[4] = OrderTicket();
-            temp = StringFind(result[3],"[");
-            if (temp<0) {
-               output[2] = StrToDouble(result[3]); } // trade number
-            else if (temp==1) {
-               output[2] = StrToDouble(StringSubstr(result[3],0,1)); }
-            else if (temp==2) {
-               output[2] = StrToDouble(StringSubstr(result[3],0,2)); }
-            return true;
-         }
-         else  {
-            return false; 
-         }
-   }
-   else {
-         if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES)) {
-            temp = StringSplit(OrderComment(),u_sep,result);
-            if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for %s",symbol); break; }
-            output[0] = StrToDouble(result[1]); //vwap
-            output[1] = StrToDouble(result[2]);   // cum loss
-            output[2] = StrToDouble(result[3]); // trade number
-            output[3] = 0.0;
-			output[4] = OrderTicket();
-            return true;
-         }
-         else  {
-            return false; 
-         }
-      }
-   }
-   return false;
+ if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_HISTORY)) {
+    temp = StringSplit(OrderComment(),u_sep,result);
+    if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); break; }
+    output[0] = StrToDouble(result[1]); //vwap
+    if (OrderCloseTime()>0) {
+	output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
+	output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false); }
+    else {
+	output[1] = StrToDouble(result[2]);   // cum loss
+	output[3] = 0.0;
+    }
+    output[4] = OrderTicket();
+    temp = StringFind(result[3],"[");
+    if (temp<0) {
+       output[2] = StrToDouble(result[3]); } // trade number
+    else if (temp==1) {
+       output[2] = StrToDouble(StringSubstr(result[3],0,1)); }
+    else if (temp==2) {
+       output[2] = StrToDouble(StringSubstr(result[3],0,2)); }
+    return true;
+ }
+ else  { return false; }
   }
-  
+  /////////////////////////////////////////////////////////////////////////////////////////////
   
   double accCcyFactor(string symbol)
   {
