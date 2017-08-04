@@ -214,6 +214,10 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTimer() //void OnTick()
   {
+  
+  // Make sure it does not run continuously when not needed
+  if (Minute()>55 || Minute()<15) {
+  
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
    ticket,
@@ -554,6 +558,8 @@ if (b_lockIn) {
    //Print("This run took:",time,"msec");
      
    return;                                      // exit start()
+   }
+   else { return; }
   }
   
   // FUNCTIONS  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
