@@ -290,15 +290,15 @@ for(int i=0; i<i_namesNumber; i++) {
 					if (OrderType()==OP_BUY) { 
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
-						m_positionDirection[i] = 1;	}
+						m_positionDirection[i] = 1; }
 					else if (OrderType()==OP_SELL) { 
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
-						m_positionDirection[i] = -1;	}
+						m_positionDirection[i] = -1;	 }
 					else if (OrderType()==OP_SELLSTOP || OrderType()==OP_SELLLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = true; 
-						m_positionDirection[i] = -1; }
+						m_positionDirection[i] = -1;  }
 					else if (OrderType()==OP_BUYSTOP || OrderType()==OP_BUYLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = true; 
@@ -326,10 +326,11 @@ for(int i=0; i<i_namesNumber; i++) {
               f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
 	      m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_band),0);
             }
-            if (temp_T1 > f_VWAP && m_positionDirection[i]<1 && b_long) {
+	    // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
+            if (temp_T1 > f_VWAP && m_positionDirection[i]<1 && b_long && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
                m_signal[i] = 1;
             }
-            else if (temp_T1 < f_VWAP && m_positionDirection[i]>-1 && b_short) {
+            else if (temp_T1 < f_VWAP && m_positionDirection[i]>-1 && b_short && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
                m_signal[i] = -1;
             }
             else {
@@ -465,6 +466,8 @@ if (b_lockIn) {
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
+				  m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
+				  Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo bought "+m_names[i]+" "+DoubleToStr(Period(),0)); 
@@ -514,6 +517,8 @@ if (b_lockIn) {
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
+				  m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
+				  Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo sold "+m_names[i]+" "+DoubleToStr(Period(),0)); 
