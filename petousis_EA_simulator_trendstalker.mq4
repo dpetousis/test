@@ -315,21 +315,33 @@ for(int i=0; i<i_namesNumber; i++) {
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
-         
+         /**
+	 m_fastFilter[i] = filter_supersmoother,m_filter
+	 f_fastFilterPrev = filter_supersmoother,m_filter
+	 f_bollingerBand = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,?,1);
+	 f_bollingerBandPrev = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,?,2);
+	 temp_T1 = (m_fastFilter[i] - f_bollingerBand)*(f_fastFilterPrev - f_bollingerBandPrev);
+	 **/
 	 temp_T1 = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],3,1);
          f_VWAP = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],2,1);       //needed at every tick
          m_fixedLevel[i] = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],1,1);
          
+	 // if (temp_T1 < 0) {
          if (temp_T1 > 0.001) {              // previous
             if (m_sequence[i][2]<1) {         // new sequence, so update the pips
-              f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
-              f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+              // f_central = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,MODE_MAIN,1);
+	      f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
+              // 
+	      f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+	      //m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_bollingerBand),0);
 	      m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_band),0);
             }
 	    // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
-            if (temp_T1 > f_VWAP && m_positionDirection[i]<1 && b_long && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
+            // if (m_fastFilter[i]>f_bollingerBand && ...
+	    if (temp_T1 > f_VWAP && m_positionDirection[i]<1 && b_long && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
                m_signal[i] = 1;
             }
+	    // else if (m_fastFilter[i]<f_bollingerBand && ...
             else if (temp_T1 < f_VWAP && m_positionDirection[i]>-1 && b_short && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
                m_signal[i] = -1;
             }
