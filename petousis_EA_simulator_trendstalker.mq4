@@ -318,8 +318,13 @@ for(int i=0; i<i_namesNumber; i++) {
          /**
 	 m_fastFilter[i] = filter_supersmoother,m_filter
 	 f_fastFilterPrev = filter_supersmoother,m_filter
-	 f_bollingerBand = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,?,1);
-	 f_bollingerBandPrev = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,?,2);
+	 if (m_sequence[i][0]<0) {	// new sequence
+	 	f_bollingerBand = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,?,1);
+	 	f_bollingerBandPrev = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,?,2); }
+	 else {				
+	 	f_bollingerBand = m_sequence[i][0];
+		f_bollingerBandPrev = f_bollingerBand;
+	 }
 	 temp_T1 = (m_fastFilter[i] - f_bollingerBand)*(f_fastFilterPrev - f_bollingerBandPrev);
 	 **/
 	 temp_T1 = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],3,1);
