@@ -461,13 +461,13 @@ if (b_lockIn) {
             SL=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
             // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
-	         f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i]));
+	         f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
 	         m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
             Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { 
 	       		temp_vwap = m_fixedLevel[i]; } 
-		else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>0.25*(ASK-SL))) {
+		else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>0.20*(ASK-SL))) {
 			m_sequence[i][0] = m_fixedLevel[i]; }	// update if last move too big
 		else { temp_vwap = m_sequence[i][0]; 
 		}
@@ -482,7 +482,7 @@ if (b_lockIn) {
                else {			// Success :) 
                   if (m_sequence[i][0] < 0) { 
 		  	m_sequence[i][0] = m_fixedLevel[i]; }       // update vwap if new sequence
-		  else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>0.25*(ASK-SL))) {
+		  else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>0.20*(ASK-SL))) {
 		  	m_sequence[i][0] = m_fixedLevel[i];	// update if last move too big
 		  }
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
@@ -512,13 +512,13 @@ if (b_lockIn) {
             SL=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
             // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
-	         f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i]));
+	         f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
 	         m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
             Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {
                if (m_sequence[i][0] < 0) { 
 	       		temp_vwap = m_fixedLevel[i]; } 
-		else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>0.25*(SL-BID))) {
+		else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>0.20*(SL-BID))) {
 			m_sequence[i][0] = m_fixedLevel[i]; }	// update if last move too big
 		else { temp_vwap = m_sequence[i][0]; 
 		}
@@ -533,7 +533,7 @@ if (b_lockIn) {
                else {				// Success :)
                   if (m_sequence[i][0] < 0) { 
 		  	m_sequence[i][0] = m_fixedLevel[i]; }       // update vwap if new sequence
-		  else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>0.25*(SL-BID))) {
+		  else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>0.20*(SL-BID))) {
 		  	m_sequence[i][0] = m_fixedLevel[i];	// update if last move too big
 		  }
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
