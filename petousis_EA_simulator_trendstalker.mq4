@@ -35,6 +35,7 @@ bool b_short = true;
 input bool b_noNewSequence = false;
 input string s_inputFileName = "TF_DEMO_H4_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
+double const f_percWarp = 0.3;
 //bool b_trailingSL = false;
 //bool b_writeToFile = false;
 bool b_sendEmail=false;
@@ -44,16 +45,13 @@ input int i_stratMagicNumber = 40;
 int const i_hourStart = 0;       
 int const i_hourEnd = 23;
 int const i_hourEndFriday = 23;
-input double const f_deviationPerc = 1.5;
+//input double const f_deviationPerc = 1.5;
 // filter 
-/***
 int const filter_memory = 50;
-int const bollinger_deviations = 1.5;
+double const bollinger_deviations = 1.5;
 input int const bollinger_mode = 1;		// 1:MODE_UPPER 2:MODE_LOWER
-**/
-//input int filter_cutoff = 10;
-int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
-bool filter_supersmoother = true;
+//int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
+//bool filter_supersmoother = true;
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
@@ -73,6 +71,7 @@ double m_profitInUSD[];
 int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
+int m_lastTicketOpenTime[];
 
 // OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int h;
@@ -117,6 +116,8 @@ int OnInit()
    ArrayInitialize(m_lotDigits,0.0);
    ArrayInitialize(m_lotMin,0.0);
    ArrayInitialize(m_ticket,0);
+   ArrayInitialize(m_lastTicketOpenTime,0);
+   
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
    ArrayResize(m_sequence,i_namesNumber,0);
@@ -130,6 +131,7 @@ int OnInit()
    ArrayResize(m_lotDigits,i_namesNumber,0);
    ArrayResize(m_lotMin,i_namesNumber,0);
    ArrayResize(m_ticket,i_namesNumber,0);
+   ArrayResize(m_lastTicketOpenTime,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -221,8 +223,8 @@ void OnTimer() //void OnTick()
   {
   
   // Make sure it does not run continuously when not needed
-  if (Minute()>55 || Minute()<15) {
-  
+   if (Minute()>55 || Minute()<15) {
+
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
    ticket,
@@ -233,15 +235,15 @@ void OnTimer() //void OnTick()
    f_winPerc=0,f_zeroCurveDiff=0,temp_vwap=-1.0,f_warpFactor=1.0,
    f_weightedLosses = 0.0,
    f_enterValue1=0.0,f_vol=0.0,
-   SL,TP,BID,ASK,f_band,f_central,
+   SL,TP,BID,ASK,f_fastFilterPrev=0.0,f_central=0.0,
    f_avgWin = 0, f_avgLoss = 0,
    f_orderOpenPrice,f_orderStopLoss,
-   f_filterPrev = 0,f_filter = 0,temp_T1=0,f_VWAP=0;
+   f_bollingerBandPrev = 0.0,f_bollingerBand = 0.0,temp_T1=0,f_VWAP=0;
    int m_signal[]; 
    bool m_isPositionOpen[];
    bool m_isPositionPending[];
    int m_positionDirection[];
-   double m_fixedLevel[];
+   double m_fastFilter[];
    string s_comment,s_orderSymbol;
    
 // PRELIMINARY PROCESSING ///////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -249,12 +251,12 @@ void OnTimer() //void OnTick()
    ArrayResize(m_isPositionOpen,i_namesNumber,0);
    ArrayResize(m_isPositionPending,i_namesNumber,0);
    ArrayResize(m_positionDirection,i_namesNumber,0);
-   ArrayResize(m_fixedLevel,i_namesNumber,0);
+   ArrayResize(m_fastFilter,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
    ArrayInitialize(m_isPositionOpen,false);
    ArrayInitialize(m_isPositionPending,false);
    ArrayInitialize(m_positionDirection,0);
-   ArrayInitialize(m_fixedLevel,0);
+   ArrayInitialize(m_fastFilter,0);
    count++;
    isNewBar=isNewBar();
    if(Bars < 100)                       // Not enough bars
@@ -295,15 +297,15 @@ for(int i=0; i<i_namesNumber; i++) {
 					if (OrderType()==OP_BUY) { 
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
-						m_positionDirection[i] = 1; }
+						m_positionDirection[i] = 1;	}
 					else if (OrderType()==OP_SELL) { 
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
-						m_positionDirection[i] = -1;	 }
+						m_positionDirection[i] = -1;	}
 					else if (OrderType()==OP_SELLSTOP || OrderType()==OP_SELLLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = true; 
-						m_positionDirection[i] = -1;  }
+						m_positionDirection[i] = -1; }
 					else if (OrderType()==OP_BUYSTOP || OrderType()==OP_BUYLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = true; 
@@ -320,48 +322,58 @@ for(int i=0; i<i_namesNumber; i++) {
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
-         /**
-	 m_fastFilter[i] = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_memory,1,1);
-	 f_fastFilterPrev = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_memory,1,2);
-	 if (m_sequence[i][0]<0) {	// new sequence
-	 	f_bollingerBand = iBands(m_names[i],timeFrame,m_filter[i][0],bollinger_deviations,0,0,bollinger_mode,1);
-	 	f_bollingerBandPrev = iBands(m_names[i],timeFrame,m_filter[i][0],bollinger_deviations,0,0,bollinger_mode,2); }
-	 else {				
-	 	f_bollingerBand = m_sequence[i][0];
-		f_bollingerBandPrev = f_bollingerBand;
-	 }
-	 temp_T1 = (m_fastFilter[i] - f_bollingerBand)*(f_fastFilterPrev - f_bollingerBandPrev);
-	 **/
-	 temp_T1 = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],3,1);
+      
+      	m_fastFilter[i] = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_memory,1,1);
+	      f_fastFilterPrev = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_memory,1,2);
+	      if (m_sequence[i][0]<0) {	// new sequence
+	 	      f_bollingerBand = iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,bollinger_mode,1);
+	 	      f_bollingerBandPrev = iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,bollinger_mode,2); }
+	      else {				
+	 	      f_bollingerBand = m_sequence[i][0];
+		      f_bollingerBandPrev = f_bollingerBand;
+	      }
+	      temp_T1 = (m_fastFilter[i] - f_bollingerBand)*(f_fastFilterPrev - f_bollingerBandPrev);
+      	
+      	/**
+         temp_T1 = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],3,1);
          f_VWAP = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],2,1);       //needed at every tick
-         m_fixedLevel[i] = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],1,1);
-         
-	 // if (temp_T1 < 0) {
          if (temp_T1 > 0.001) {              // previous
             if (m_sequence[i][2]<1) {         // new sequence, so update the pips
-              // f_central = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,MODE_MAIN,1);
-	      f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
-              // 
-	      f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-	      //m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_bollingerBand),0);
-	      m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_band),0);
+	            f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
+	            f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
+	            m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_band),0);
             }
-	    // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
-            // if (m_fastFilter[i]>f_bollingerBand && ...
-	    if (temp_T1 > f_VWAP && m_positionDirection[i]<1 && b_long && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
+	         // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
+	         if (temp_T1 > f_VWAP && m_positionDirection[i]<1 && b_long && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
                m_signal[i] = 1;
             }
-	    // else if (m_fastFilter[i]<f_bollingerBand && ...
             else if (temp_T1 < f_VWAP && m_positionDirection[i]>-1 && b_short && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
                m_signal[i] = -1;
             }
             else {
                m_signal[i] = 0;
             }
-		}
-         else {
-            m_signal[i] = 0;
-         }
+		   }
+         else { m_signal[i] = 0; }
+         **/
+         
+          if (temp_T1 < 0) {
+            if (m_sequence[i][2]<1) {         // new sequence, so update the pips
+               f_central = iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_MAIN,1);
+	            m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_bollingerBand),0);
+            }
+	         // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
+            if (m_fastFilter[i]>f_bollingerBand && m_positionDirection[i]<1 && b_long && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
+               m_signal[i] = 1;
+            }
+	         else if (m_fastFilter[i]<f_bollingerBand && m_positionDirection[i]>-1 && b_short && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
+               m_signal[i] = -1;
+            }
+            else {
+               m_signal[i] = 0;
+            }
+		   }
+         else { m_signal[i] = 0; }
       }
       }
 
@@ -466,11 +478,11 @@ if (b_lockIn) {
             Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { 
-	       		temp_vwap = m_fixedLevel[i]; } 
-		else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>0.20*(ASK-SL))) {
-			m_sequence[i][0] = m_fixedLevel[i]; }	// update if last move too big
-		else { temp_vwap = m_sequence[i][0]; 
-		}
+   	       		temp_vwap = m_fastFilter[i]; } 
+      		else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>0.2*(ASK-SL))) {
+      			m_sequence[i][0] = m_fastFilter[i]; }	// update if last move too big
+      		else { temp_vwap = m_sequence[i][0]; 
+            }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_BUYLIMIT,m_lots[i],ASK,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Buy
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
@@ -480,12 +492,12 @@ if (b_lockIn) {
                   Alert("Loss: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_bollingerDeviationInPips[i]);
                }
                else {			// Success :) 
-		  m_sequence[i][0] = temp_vwap;
+                  m_sequence[i][0] = temp_vwap;
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
-				  m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
-				  Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
+				      m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
+                  Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo bought "+m_names[i]+" "+DoubleToStr(Period(),0)); 
@@ -512,12 +524,12 @@ if (b_lockIn) {
 	         m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
             Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {
-               if (m_sequence[i][0] < 0) { 
-	       		temp_vwap = m_fixedLevel[i]; } 
-		else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>0.20*(SL-BID))) {
-			m_sequence[i][0] = m_fixedLevel[i]; }	// update if last move too big
-		else { temp_vwap = m_sequence[i][0]; 
-		}
+                if (m_sequence[i][0] < 0) { 
+   	       		temp_vwap = m_fastFilter[i]; } 
+         		else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>0.25*(SL-BID))) {
+         			m_sequence[i][0] = m_fastFilter[i]; }	// update if last move too big
+         		else { temp_vwap = m_sequence[i][0]; 
+               }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_SELLLIMIT,m_lots[i],BID,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Sell
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
@@ -527,12 +539,12 @@ if (b_lockIn) {
                   Alert("Loss: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_bollingerDeviationInPips[i]);
                }
                else {				// Success :)
-		  m_sequence[i][0] = temp_vwap;
+                  m_sequence[i][0] = temp_vwap;
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
-				  m_ticket[i] = ticket;
-				  m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
-				  Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
+   				  m_ticket[i] = ticket;
+   				  m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
+                  Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo sold "+m_names[i]+" "+DoubleToStr(Period(),0)); 
