@@ -46,6 +46,11 @@ int const i_hourEnd = 23;
 int const i_hourEndFriday = 23;
 input double const f_deviationPerc = 1.5;
 // filter 
+/***
+int const filter_memory = 50;
+int const bollinger_deviations = 1.5;
+input int const bollinger_mode = 1;		// 1:MODE_UPPER 2:MODE_LOWER
+**/
 //input int filter_cutoff = 10;
 int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
 bool filter_supersmoother = true;
@@ -316,11 +321,11 @@ for(int i=0; i<i_namesNumber; i++) {
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
          /**
-	 m_fastFilter[i] = filter_supersmoother,m_filter
-	 f_fastFilterPrev = filter_supersmoother,m_filter
+	 m_fastFilter[i] = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_memory,1,1);
+	 f_fastFilterPrev = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_memory,1,2);
 	 if (m_sequence[i][0]<0) {	// new sequence
-	 	f_bollingerBand = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,?,1);
-	 	f_bollingerBandPrev = iBands(m_names[i],timeFrame,m_filter,f_deviations,0,?,?,2); }
+	 	f_bollingerBand = iBands(m_names[i],timeFrame,m_filter[i][0],bollinger_deviations,0,0,bollinger_mode,1);
+	 	f_bollingerBandPrev = iBands(m_names[i],timeFrame,m_filter[i][0],bollinger_deviations,0,0,bollinger_mode,2); }
 	 else {				
 	 	f_bollingerBand = m_sequence[i][0];
 		f_bollingerBandPrev = f_bollingerBand;
