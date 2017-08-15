@@ -72,7 +72,7 @@ int OnCalculate(const int rates_total,
       buf_price[i] = (high[i]+low[i]+close[i]+close[i])/4;  
       
       if ((i>=i_limit-2) && (i_limit>1)) {        // Initialize only at beggining, not at every live tick
-         buf_filter[i] = 0;}
+         buf_filter[i] = buf_price[i];}
       else {
          f_alpha = MathExp(-1.414*M_PI/(double)i_period);
          f_beta = 2 * f_alpha * cos(1.414*M_PI/(double)i_period);
