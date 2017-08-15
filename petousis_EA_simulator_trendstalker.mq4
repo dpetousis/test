@@ -471,7 +471,7 @@ if (b_lockIn) {
 			m_sequence[i][0] = m_fixedLevel[i]; }	// update if last move too big
 		else { temp_vwap = m_sequence[i][0]; 
 		}
-               s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
+               s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_BUYLIMIT,m_lots[i],ASK,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Buy
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
                if (ticket < 0)  {                    
@@ -480,11 +480,7 @@ if (b_lockIn) {
                   Alert("Loss: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_bollingerDeviationInPips[i]);
                }
                else {			// Success :) 
-                  if (m_sequence[i][0] < 0) { 
-		  	m_sequence[i][0] = m_fixedLevel[i]; }       // update vwap if new sequence
-		  else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>0.20*(ASK-SL))) {
-		  	m_sequence[i][0] = m_fixedLevel[i];	// update if last move too big
-		  }
+		  m_sequence[i][0] = temp_vwap;
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
@@ -522,7 +518,7 @@ if (b_lockIn) {
 			m_sequence[i][0] = m_fixedLevel[i]; }	// update if last move too big
 		else { temp_vwap = m_sequence[i][0]; 
 		}
-               s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,5),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
+               s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_SELLLIMIT,m_lots[i],BID,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Sell
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
                if (ticket < 0)     {                 
@@ -531,11 +527,7 @@ if (b_lockIn) {
                   Alert("Loss: ",m_sequence[i][1],". SLinUSD: ",m_profitInUSD[i],". Factor: ",m_accountCcyFactors[i],". Pips: ",m_bollingerDeviationInPips[i]);
                }
                else {				// Success :)
-                  if (m_sequence[i][0] < 0) { 
-		  	m_sequence[i][0] = m_fixedLevel[i]; }       // update vwap if new sequence
-		  else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>0.20*(SL-BID))) {
-		  	m_sequence[i][0] = m_fixedLevel[i];	// update if last move too big
-		  }
+		  m_sequence[i][0] = temp_vwap;
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
