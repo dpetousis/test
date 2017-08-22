@@ -638,7 +638,12 @@ if (b_lockIn) {
        if(OrderSelect(ticket,SELECT_BY_TICKET)) {
           temp = StringSplit(OrderComment(),u_sep,result);
           if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); return false; }
-          output[0] = StrToDouble(result[1]); //vwap
+          temp = StringFind(result[1],"A");
+	  if (temp<0) {
+	  	output[0] = StrToDouble(result[1]); //vwap
+	else {
+		output[0] = StrToDouble(StringSubstr(result[1],0,temp));
+	}
           if (OrderCloseTime()>0) {
       	output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
       	output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false); }
