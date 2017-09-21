@@ -33,21 +33,19 @@
 bool b_long = true;
 bool b_short = true;
 input bool b_noNewSequence = false;
-input string s_inputFileName = "TF_DEMO_H4_TRENDSTALKER.txt"; 
+input string s_inputFileName = "TF_DEMO_H1_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
+// Percentage of TP above which trade will always be a winning or breakeven
 double const f_percWarp = 0.3;
+double const f_adjustLevel = 0.1;
 //bool b_trailingSL = false;
 //bool b_writeToFile = false;
 bool b_sendEmail=false;
 // always positive
-input int i_stratMagicNumber = 40; 
-// if 0,23 it trades nonstop
-int const i_hourStart = 0;       
-int const i_hourEnd = 23;
-int const i_hourEndFriday = 23;
+input int i_stratMagicNumber = 46; 
 //input double const f_deviationPerc = 1.5;
 // filter 
-int const filter_memory = 50;
+int const filter_history = 50;
 double const bollinger_deviations = 1.5;
 input int const bollinger_mode = 1;		// 1:MODE_UPPER 2:MODE_LOWER
 //int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
@@ -56,7 +54,7 @@ input int const bollinger_mode = 1;		// 1:MODE_UPPER 2:MODE_LOWER
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
 int const timeFrame=Period();        
-int count = 0,i_trade=0,i_previousVWAPZone=0,i_currentVWAPZone=0,i_namesNumber=0;
+int count = 0,i_namesNumber=0;
 bool Work = true;             //EA will work
 string const symb =Symbol();
 int m_myMagicNumber[NAMESNUMBERMAX];  // Magic Numbers
@@ -72,12 +70,7 @@ int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
 int m_lastTicketOpenTime[];
-
-// OTHER VARIABLES //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int h;
-int i_labouchereLosses=0;
 double temp_sequence[5];
-int i_ordersHistoryTotal=OrdersHistoryTotal();
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -221,30 +214,23 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTimer() //void OnTick()
   {
-  
-  // Make sure it does not run continuously when not needed
-   if (Minute()>55 || Minute()<15) {
 
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
    ticket,
-   i_orderMagicNumber,
-   i_win=0,i_loss=0;
-   bool res,isNewBar,temp_flag;
+   i_orderMagicNumber;
+   bool res,isNewBar,temp_flag,b_pending=false;
    double
-   f_winPerc=0,f_zeroCurveDiff=0,temp_vwap=-1.0,f_warpFactor=1.0,
-   f_weightedLosses = 0.0,
-   f_enterValue1=0.0,f_vol=0.0,
+   temp_vwap=-1.0,f_warpFactor=1.0,
    SL,TP,BID,ASK,f_fastFilterPrev=0.0,f_central=0.0,
-   f_avgWin = 0, f_avgLoss = 0,
    f_orderOpenPrice,f_orderStopLoss,
-   f_bollingerBandPrev = 0.0,f_bollingerBand = 0.0,temp_T1=0,f_VWAP=0;
+   f_bollingerBandPrev = 0.0,f_bollingerBand = 0.0,temp_T1=0;
    int m_signal[]; 
    bool m_isPositionOpen[];
    bool m_isPositionPending[];
    int m_positionDirection[];
    double m_fastFilter[];
-   string s_comment,s_orderSymbol;
+   string s_comment,s_orderSymbol,s_adjFlag="";
    
 // PRELIMINARY PROCESSING ///////////////////////////////////////////////////////////////////////////////////////////////////////////
    ArrayResize(m_signal,i_namesNumber,0);
@@ -305,10 +291,12 @@ for(int i=0; i<i_namesNumber; i++) {
 					else if (OrderType()==OP_SELLSTOP || OrderType()==OP_SELLLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = true; 
+						b_pending = true;
 						m_positionDirection[i] = -1; }
 					else if (OrderType()==OP_BUYSTOP || OrderType()==OP_BUYLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = true; 
+						b_pending = true;
 						m_positionDirection[i] = 1; 
 					}
 				}
@@ -317,14 +305,16 @@ for(int i=0; i<i_namesNumber; i++) {
 		}
       }
 }
-            
+
+// Make sure rest of ontimer() does not run continuously when not needed
+   if ((Minute()>55 || Minute()<15) || b_pending) {   
 
 // INDICATOR BUFFERS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
       
-      	m_fastFilter[i] = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_memory,1,1);
-	      f_fastFilterPrev = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_memory,1,2);
+      	m_fastFilter[i] = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_history,1,1);
+	      f_fastFilterPrev = iCustom(m_names[i],0,"petousis_supersmoother",m_filter[i][1],filter_history,1,2);
 	      if (m_sequence[i][0]<0) {	// new sequence
 	 	      f_bollingerBand = iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,bollinger_mode,1);
 	 	      f_bollingerBandPrev = iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,bollinger_mode,2); }
@@ -478,12 +468,15 @@ if (b_lockIn) {
             Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { 
-   	       		temp_vwap = m_fastFilter[i]; } 
-      		else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>0.2*(ASK-SL))) {
-      			m_sequence[i][0] = m_fastFilter[i]; }	// update if last move too big
+   	       		temp_vwap = m_fastFilter[i] - MarketInfo(m_names[i],MODE_POINT); 
+   	       		s_adjFlag = ""; } 
+      		else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>f_adjustLevel*(ASK-SL))) {
+      			   temp_vwap = m_fastFilter[i] - MarketInfo(m_names[i],MODE_POINT); 
+      			   s_adjFlag = "A"; }	// update if last move too big
       		else { temp_vwap = m_sequence[i][0]; 
+      		         s_adjFlag = "";
             }
-               s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
+               s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),s_adjFlag,"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_BUYLIMIT,m_lots[i],ASK,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Buy
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
                if (ticket < 0)  {                    
@@ -525,12 +518,15 @@ if (b_lockIn) {
             Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {
                 if (m_sequence[i][0] < 0) { 
-   	       		temp_vwap = m_fastFilter[i]; } 
-         		else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>0.25*(SL-BID))) {
-         			m_sequence[i][0] = m_fastFilter[i]; }	// update if last move too big
+   	       		temp_vwap = m_fastFilter[i] + MarketInfo(m_names[i],MODE_POINT); 
+   	       		s_adjFlag = ""; } 
+         		else if (m_sequence[i][0]>0 && (m_sequence[i][0]-BID>f_adjustLevel*(SL-BID))) {
+         			temp_vwap = m_fastFilter[i] + MarketInfo(m_names[i],MODE_POINT); 
+         			s_adjFlag = "A"; }	// update if last move too big
          		else { temp_vwap = m_sequence[i][0]; 
+         		   s_adjFlag = "";
                }
-               s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
+               s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),s_adjFlag,"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_SELLLIMIT,m_lots[i],BID,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Sell
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
                if (ticket < 0)     {                 
@@ -639,11 +635,11 @@ if (b_lockIn) {
           temp = StringSplit(OrderComment(),u_sep,result);
           if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); return false; }
           temp = StringFind(result[1],"A");
-	  if (temp<0) {
-	  	output[0] = StrToDouble(result[1]); //vwap
-	else {
-		output[0] = StrToDouble(StringSubstr(result[1],0,temp));
-	}
+          if (temp<0) {
+            output[0] = StrToDouble(result[1]); } //vwap
+          else {
+            output[0] = StrToDouble(StringSubstr(result[1],0,temp)); 
+          }
           if (OrderCloseTime()>0) {
       	output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
       	output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false); }
