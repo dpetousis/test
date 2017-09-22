@@ -69,7 +69,6 @@ double m_profitInUSD[];
 int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
-int m_lastTicketOpenTime[];
 double temp_sequence[5];
 
 //+------------------------------------------------------------------+
@@ -109,7 +108,6 @@ int OnInit()
    ArrayInitialize(m_lotDigits,0.0);
    ArrayInitialize(m_lotMin,0.0);
    ArrayInitialize(m_ticket,0);
-   ArrayInitialize(m_lastTicketOpenTime,0);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -124,7 +122,6 @@ int OnInit()
    ArrayResize(m_lotDigits,i_namesNumber,0);
    ArrayResize(m_lotMin,i_namesNumber,0);
    ArrayResize(m_ticket,i_namesNumber,0);
-   ArrayResize(m_lastTicketOpenTime,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -229,6 +226,7 @@ void OnTimer() //void OnTick()
    bool m_isPositionOpen[];
    bool m_isPositionPending[];
    int m_positionDirection[];
+   int m_lastTicketOpenTime[];
    double m_fastFilter[];
    string s_comment,s_orderSymbol,s_adjFlag="";
    
@@ -237,11 +235,13 @@ void OnTimer() //void OnTick()
    ArrayResize(m_isPositionOpen,i_namesNumber,0);
    ArrayResize(m_isPositionPending,i_namesNumber,0);
    ArrayResize(m_positionDirection,i_namesNumber,0);
+   ArrayResize(m_lastTicketOpenTime,i_namesNumber,0);
    ArrayResize(m_fastFilter,i_namesNumber,0);
    ArrayInitialize(m_signal,0);
    ArrayInitialize(m_isPositionOpen,false);
    ArrayInitialize(m_isPositionPending,false);
    ArrayInitialize(m_positionDirection,0);
+   ArrayInitialize(m_lastTicketOpenTime,-1);
    ArrayInitialize(m_fastFilter,0);
    count++;
    isNewBar=isNewBar();
@@ -283,10 +283,12 @@ for(int i=0; i<i_namesNumber; i++) {
 					if (OrderType()==OP_BUY) { 
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
+						m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,OrderOpenTime(),true);
 						m_positionDirection[i] = 1;	}
 					else if (OrderType()==OP_SELL) { 
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
+						m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,OrderOpenTime(),true);
 						m_positionDirection[i] = -1;	}
 					else if (OrderType()==OP_SELLSTOP || OrderType()==OP_SELLLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
@@ -489,7 +491,7 @@ if (b_lockIn) {
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
-				      m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
+				      //m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
                   Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
@@ -539,7 +541,7 @@ if (b_lockIn) {
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
    				  m_ticket[i] = ticket;
-   				  m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
+   				  //m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
                   Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
