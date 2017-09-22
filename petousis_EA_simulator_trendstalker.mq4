@@ -158,6 +158,11 @@ int OnInit()
       }
    }
    
+   // Setting the Global variables
+   GlobalVariableSet("gv_stratMagicNumber",-1);
+   GlobalVariableSet("gv_product",-1);
+   GlobalVariableSet("gv_slowFilter",-1);
+   
    Alert ("Function init() triggered at start for ",symb);// Alert
    if (IsDemo() == false) { Alert("THIS IS NOT A DEMO RUN"); }
    
@@ -255,7 +260,12 @@ void OnTimer() //void OnTick()
       Alert("Critical error. EA doesn't work.");
       return;                                   // Exit start()
      }
-      
+
+// SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
+if ((int)GlobalVariableGet("gv_stratMagicNumber")==i_stratMagicNumber) {
+	m_sequence[(int)GlobalVariableGet("gv_product")][0] = GlobalVariableGet("gv_slowFilter");
+}
+
 // UPDATE STATUS/////////////////////////////////////////////////////////////////////////////////////////////////////
 for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
