@@ -263,7 +263,13 @@ void OnTimer() //void OnTick()
 
 // SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
 if ((int)GlobalVariableGet("gv_stratMagicNumber")==i_stratMagicNumber) {
-	m_sequence[(int)GlobalVariableGet("gv_product")][0] = GlobalVariableGet("gv_slowFilter");
+	int temp_i = (int)GlobalVariableGet("gv_product");
+	m_sequence[temp_i][0] = GlobalVariableGet("gv_slowFilter");
+	Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]);
+	// resetting
+	GlobalVariableSet("gv_stratMagicNumber",-1);
+   	GlobalVariableSet("gv_product",-1);
+   	GlobalVariableSet("gv_slowFilter",-1);
 }
 
 // UPDATE STATUS/////////////////////////////////////////////////////////////////////////////////////////////////////
