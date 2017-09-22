@@ -491,8 +491,6 @@ if (b_lockIn) {
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 				  m_ticket[i] = ticket;
-				      //m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
-                  Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo bought "+m_names[i]+" "+DoubleToStr(Period(),0)); 
@@ -541,8 +539,6 @@ if (b_lockIn) {
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
    				  m_ticket[i] = ticket;
-   				  //m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,TimeCurrent(),true);
-                  Alert("Bar trade opened:",m_lastTicketOpenTime[i]," Time:",TimeCurrent());
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo sold "+m_names[i]+" "+DoubleToStr(Period(),0)); 
