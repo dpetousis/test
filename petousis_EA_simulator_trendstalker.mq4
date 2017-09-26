@@ -327,7 +327,7 @@ for(int i=0; i<i_namesNumber; i++) {
       }
       f_cumLosses = f_cumLosses - m_sequence[i][1]; 
 }
-f_cumLossesAvg = f_cumLosses / i_openOrdersNo;
+if (i_openOrdersNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrdersNo; }
 
 // Make sure rest of ontimer() does not run continuously when not needed
    if ((Minute()>55 || Minute()<15) || b_pending) {   
