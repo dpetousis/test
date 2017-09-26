@@ -35,6 +35,7 @@ bool b_short = true;
 input bool b_noNewSequence = false;
 input string s_inputFileName = "TF_DEMO_H1_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
+bool b_cumLosses = false;
 // Percentage of TP above which trade will always be a winning or breakeven
 double const f_percWarp = 0.3;
 double const f_adjustLevel = 0.1;
@@ -219,7 +220,7 @@ void OnTimer() //void OnTick()
 
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
-   ticket,
+   ticket,i_openOrdersNo=0,
    i_orderMagicNumber;
    bool res,isNewBar,temp_flag,b_pending=false;
    double
@@ -300,12 +301,14 @@ for(int i=0; i<i_namesNumber; i++) {
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
 						m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,OrderOpenTime(),true);
-						m_positionDirection[i] = 1;	}
+						m_positionDirection[i] = 1;	
+						i_openOrdersNo = i_openOrdersNo + 1; }
 					else if (OrderType()==OP_SELL) { 
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
 						m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,OrderOpenTime(),true);
-						m_positionDirection[i] = -1;	}
+						m_positionDirection[i] = -1;	
+						i_openOrdersNo = i_openOrdersNo + 1; }
 					else if (OrderType()==OP_SELLSTOP || OrderType()==OP_SELLLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = true; 
@@ -322,7 +325,9 @@ for(int i=0; i<i_namesNumber; i++) {
 			else { Alert("Failed to select trade: ",m_ticket[i]); }
 		}
       }
+      f_cumLosses = f_cumLosses - m_sequence[i][1]; 
 }
+f_cumLossesAvg = f_cumLosses / i_openOrdersNo;
 
 // Make sure rest of ontimer() does not run continuously when not needed
    if ((Minute()>55 || Minute()<15) || b_pending) {   
@@ -483,8 +488,9 @@ if (b_lockIn) {
             // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
 	    //f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
 	    //m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-            if (-m_sequence[i][1]>m_profitInUSD[i]*f_percWarp) {
-	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+	    if (b_cumLosses) { m_loss = f_cumLossesAvg; } else { m_loss = -m_sequence[i][1]; }
+	    if (m_loss>m_profitInUSD[i]*f_percWarp) {
+	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
 	    }
 	    else {
 	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
@@ -537,8 +543,9 @@ if (b_lockIn) {
             // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
 	    // f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
 	    // m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-            if (-m_sequence[i][1]>m_profitInUSD[i]*f_percWarp) {
-	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+            if (b_cumLosses) { m_loss = f_cumLossesAvg; } else { m_loss = -m_sequence[i][1]; }
+	    if (m_loss>m_profitInUSD[i]*f_percWarp) {
+	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
 	    }
 	    else {
 	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
