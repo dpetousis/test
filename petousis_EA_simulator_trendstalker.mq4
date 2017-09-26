@@ -35,7 +35,7 @@ bool b_short = true;
 input bool b_noNewSequence = false;
 input string s_inputFileName = "TF_DEMO_H1_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
-bool b_cumLosses = false;
+bool b_useCumLosses = false;
 // Percentage of TP above which trade will always be a winning or breakeven
 double const f_percWarp = 0.3;
 double const f_adjustLevel = 0.1;
