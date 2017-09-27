@@ -286,6 +286,7 @@ for(int i=0; i<i_namesNumber; i++) {
 							m_sequence[i][1] = 0;
 							m_sequence[i][2] = 0; }
 						else {
+							// slow filter value stays the same here - may have changed externally by user so dont override with value in trade comment
 							m_sequence[i][1] = temp_sequence[1];
 							m_sequence[i][2] = temp_sequence[2];
 						}
