@@ -151,6 +151,7 @@ int OnInit()
 		 m_ticket[i] = OrderTicket();
 		 if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
 			for (int j=0;j<3;j++) {
+			   // THIS PROCESS WILL OVERWRITE ANY EXTERNALLY MODIFIED SLOW FILTERS - THEY WILL NEED TO BE RESET EXTERNALLY
 			   m_sequence[i][j] = temp_sequence[j];
 			}
 			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]);
