@@ -286,9 +286,8 @@ for(int i=0; i<i_namesNumber; i++) {
 							m_sequence[i][1] = 0;
 							m_sequence[i][2] = 0; }
 						else {
-							for (int j=0;j<3;j++) {
-							   m_sequence[i][j] = temp_sequence[j];
-							}
+							m_sequence[i][1] = temp_sequence[1];
+							m_sequence[i][2] = temp_sequence[2];
 						}
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = false;
