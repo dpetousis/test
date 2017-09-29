@@ -71,6 +71,7 @@ int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
 double temp_sequence[6];
+double f_cumLosses=0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -154,6 +155,7 @@ int OnInit()
 			   // THIS PROCESS WILL OVERWRITE ANY EXTERNALLY MODIFIED SLOW FILTERS - THEY WILL NEED TO BE RESET EXTERNALLY
 			   m_sequence[i][j] = temp_sequence[j];
 			}
+			f_cumLosses = f_cumLosses + m_sequence[i][1];
 			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]);
 			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); 
 		}
@@ -328,7 +330,6 @@ for(int i=0; i<i_namesNumber; i++) {
 			else { Alert("Failed to select trade: ",m_ticket[i]); }
 		}
       }
-      f_cumLosses = f_cumLosses - m_sequence[i][1]; 
 }
 if (i_openOrdersNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrdersNo; }
 
@@ -496,7 +497,7 @@ if (b_lockIn) {
             // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
 	    //f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
 	    //m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-	    if (b_cumLosses) { m_loss = f_cumLossesAvg; } else { m_loss = -m_sequence[i][1]; }
+	    if (b_cumLosses) { m_loss = -f_cumLossesAvg; } else { m_loss = -m_sequence[i][1]; }
 	    if (m_loss>m_profitInUSD[i]*f_percWarp) {
 	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
 	    }
@@ -551,7 +552,7 @@ if (b_lockIn) {
             // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
 	    // f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
 	    // m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-            if (b_cumLosses) { m_loss = f_cumLossesAvg; } else { m_loss = -m_sequence[i][1]; }
+            if (b_cumLosses) { m_loss = -f_cumLossesAvg; } else { m_loss = -m_sequence[i][1]; }
 	    if (m_loss>m_profitInUSD[i]*f_percWarp) {
 	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
 	    }
