@@ -71,7 +71,6 @@ int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
 double temp_sequence[6];
-double f_cumLosses=0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -155,7 +154,6 @@ int OnInit()
 			   // THIS PROCESS WILL OVERWRITE ANY EXTERNALLY MODIFIED SLOW FILTERS - THEY WILL NEED TO BE RESET EXTERNALLY
 			   m_sequence[i][j] = temp_sequence[j];
 			}
-			f_cumLosses = f_cumLosses + m_sequence[i][1];
 			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]);
 			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); 
 		}
@@ -228,7 +226,7 @@ void OnTimer() //void OnTick()
    i_orderMagicNumber;
    bool res,isNewBar,temp_flag,b_pending=false;
    double
-   temp_vwap=-1.0,f_warpFactor=1.0,
+   temp_vwap=-1.0,f_warpFactor=1.0,f_cumLosses=0,
    SL,TP,BID,ASK,f_fastFilterPrev=0.0,f_central=0.0,
    f_orderOpenPrice,f_orderStopLoss,
    f_bollingerBandPrev = 0.0,f_bollingerBand = 0.0,temp_T1=0;
@@ -330,6 +328,7 @@ for(int i=0; i<i_namesNumber; i++) {
 			else { Alert("Failed to select trade: ",m_ticket[i]); }
 		}
       }
+      f_cumLosses = f_cumLosses + m_sequence[i][1];
 }
 if (i_openOrdersNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrdersNo; }
 
