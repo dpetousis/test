@@ -70,7 +70,7 @@ double m_profitInUSD[];
 int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
-double temp_sequence[5];
+double temp_sequence[6];
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -288,7 +288,7 @@ for(int i=0; i<i_namesNumber; i++) {
 							m_sequence[i][2] = 0; }
 						else {
 							// slow filter value stays the same here - may have changed externally by user so dont override with value in trade comment
-							m_sequence[i][1] = temp_sequence[1];
+							m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; // older losses + current
 							m_sequence[i][2] = temp_sequence[2];
 						}
 						m_isPositionOpen[i]=false;
@@ -439,7 +439,7 @@ if (b_lockIn) {
             if (res==true) {
                Alert("Order Buy closed."); 
                if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
-					m_sequence[i][1] = temp_sequence[1]; // update cum losses
+					m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; // update cum losses
                }
                else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
                break;
@@ -460,7 +460,7 @@ if (b_lockIn) {
             if (res==true) {
                Alert("Order Sell closed. "); 
                if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
-					m_sequence[i][1] = temp_sequence[1]; // update cum losses
+					m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; // update cum losses
                }
                else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
                break;
@@ -675,11 +675,13 @@ if (b_lockIn) {
             output[0] = StrToDouble(StringSubstr(result[1],0,temp)); 
           }
           if (OrderCloseTime()>0) {
-      	output[1] = StrToDouble(result[2])+ OrderProfit() + OrderCommission() + OrderSwap();   // cum loss
-      	output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false); }
+      	output[1] = StrToDouble(result[2]);   // cum loss
+      	output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false); 
+	output[5] = OrderProfit() + OrderCommission() + OrderSwap(); }
           else {
       	output[1] = StrToDouble(result[2]);   // cum loss
       	output[3] = 0.0;
+	output[5] = 0.0;
           }
           output[4] = OrderTicket();
           temp = StringFind(result[3],"[");
