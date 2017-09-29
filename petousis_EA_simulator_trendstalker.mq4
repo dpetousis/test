@@ -282,7 +282,7 @@ for(int i=0; i<i_namesNumber; i++) {
 			if (res) {
 				if (OrderCloseTime()>0) {			// if closed
 					if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
-						if (temp_sequence[1]>0) {	//ie trade sequence closed positive 
+						if (temp_sequence[1] + temp_sequence[5]>0) {	//ie trade sequence closed positive 
 							m_sequence[i][0] = -1;
 							m_sequence[i][1] = 0;
 							m_sequence[i][2] = 0; }
