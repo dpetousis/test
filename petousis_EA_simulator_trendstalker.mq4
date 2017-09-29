@@ -71,6 +71,7 @@ int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
 double temp_sequence[6];
+int i_openOrdersNo=0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -155,7 +156,8 @@ int OnInit()
 			   m_sequence[i][j] = temp_sequence[j];
 			}
 			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]);
-			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); }
+			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); 
+			i_openOrdersNo = i_openOrdersNo + 1;}
 		 else { PrintFormat("Cannot read open trade comment %s",m_names[i]); }
       }
    }
@@ -221,7 +223,7 @@ void OnTimer() //void OnTick()
 
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
-   ticket,i_openOrdersNo=0,
+   ticket,
    i_orderMagicNumber;
    bool res,isNewBar,temp_flag,b_pending=false;
    double
@@ -288,7 +290,11 @@ for(int i=0; i<i_namesNumber; i++) {
 							m_sequence[i][2] = 0; }
 						else {
 							// slow filter value stays the same here - may have changed externally by user so dont override with value in trade comment
-							m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; // older losses + current
+							if (b_useCumLosses) {
+								m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]/i_openOrdersNo; }
+							else {
+								m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; // older losses + current
+							}
 							m_sequence[i][2] = temp_sequence[2];
 						}
 						m_isPositionOpen[i]=false;
@@ -329,6 +335,10 @@ for(int i=0; i<i_namesNumber; i++) {
       f_cumLosses = f_cumLosses - m_sequence[i][1]; 
 }
 if (i_openOrdersNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrdersNo; }
+for(int j=0; j<i_namesNumber; j++) { 
+	if (m_ticket[j]>0) { m_sequence[j][1] = m_sequence[j][1] + temp_sequence[5]/i_openOrdersNo;
+	} 
+
 
 // Make sure rest of ontimer() does not run continuously when not needed
    if ((Minute()>55 || Minute()<15) || b_pending) {   
