@@ -71,6 +71,7 @@ int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
 double temp_sequence[6];
+double f_cumLosses=0.0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -151,12 +152,12 @@ int OnInit()
 		 m_ticket[i] = OrderTicket();
 		 if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
 			for (int j=0;j<3;j++) {
-			   // THIS PROCESS WILL OVERWRITE ANY EXTERNALLY MODIFIED SLOW FILTERS - THEY WILL NEED TO BE RESET EXTERNALLY
+			   //THIS PROCESS WILL OVERWRITE ANY EXTERNALLY MODIFIED SLOW FILTERS - THEY WILL NEED TO BE RESET EXTERNALLY AGAIN
 			   m_sequence[i][j] = temp_sequence[j];
 			}
-			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]);
-			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); 
-		}
+			f_cumLosses = f_cumLosses + m_sequence[i][1];
+			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]," ",f_cumLosses);
+			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); }
 		 else { PrintFormat("Cannot read open trade comment %s",m_names[i]); }
       }
    }
@@ -222,12 +223,12 @@ void OnTimer() //void OnTick()
 
 // VARIABLE DECLARATIONS /////////////////////////////////////////////////////////////////////////////////////////////////////////
    int 
-   ticket, i_openOrdersNo=0,
-   i_orderMagicNumber;
+   ticket,
+   i_orderMagicNumber,i_openOrderNo = 0;
    bool res,isNewBar,temp_flag,b_pending=false;
    double
-   temp_vwap=-1.0,f_warpFactor=1.0,f_cumLosses=0,
-   SL,TP,BID,ASK,f_fastFilterPrev=0.0,f_central=0.0,
+   temp_vwap=-1.0,
+   SL,TP,BID,ASK,f_fastFilterPrev=0.0,f_central=0.0,f_cumLossesAvg=0,f_loss,
    f_orderOpenPrice,f_orderStopLoss,
    f_bollingerBandPrev = 0.0,f_bollingerBand = 0.0,temp_T1=0;
    int m_signal[]; 
@@ -283,14 +284,14 @@ for(int i=0; i<i_namesNumber; i++) {
 			if (res) {
 				if (OrderCloseTime()>0) {			// if closed
 					if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
-						if (temp_sequence[1] + temp_sequence[5]>0) {	//ie trade sequence closed positive 
+						if (temp_sequence[1]+temp_sequence[5]>0) {	//ie trade sequence closed positive 
 							m_sequence[i][0] = -1;
 							m_sequence[i][1] = 0;
 							m_sequence[i][2] = 0; }
 						else {
-							// slow filter value stays the same here - may have changed externally by user so dont override with value in trade comment
-							if (b_useCumLosses) { f_cumLosses = f_cumLosses + temp_sequence[5]; }
-							else { m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; } // older losses + current
+						   // dont copy over slow filter because it may have been modified externally
+						   if (b_useCumLosses) { f_cumLosses = f_cumLosses + temp_sequence[5]; }
+						   else { m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; }
 							m_sequence[i][2] = temp_sequence[2];
 						}
 						m_isPositionOpen[i]=false;
@@ -305,13 +306,13 @@ for(int i=0; i<i_namesNumber; i++) {
 						m_isPositionPending[i] = false;
 						m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,OrderOpenTime(),true);
 						m_positionDirection[i] = 1;	
-						i_openOrdersNo = i_openOrdersNo + 1; }
+						i_openOrderNo = i_openOrderNo + 1; }
 					else if (OrderType()==OP_SELL) { 
 						m_isPositionOpen[i]=true;
 						m_isPositionPending[i] = false;
 						m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,OrderOpenTime(),true);
 						m_positionDirection[i] = -1;	
-						i_openOrdersNo = i_openOrdersNo + 1; }
+						i_openOrderNo = i_openOrderNo + 1; }
 					else if (OrderType()==OP_SELLSTOP || OrderType()==OP_SELLLIMIT) { 								// pending
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = true; 
@@ -328,10 +329,9 @@ for(int i=0; i<i_namesNumber; i++) {
 			else { Alert("Failed to select trade: ",m_ticket[i]); }
 		}
       }
-      f_cumLosses = f_cumLosses + m_sequence[i][1];
+      //f_cumLosses = f_cumLosses + m_sequence[i][1];
 }
-if (i_openOrdersNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrdersNo; }
-
+if (i_openOrderNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrderNo; }
 
 // Make sure rest of ontimer() does not run continuously when not needed
    if ((Minute()>55 || Minute()<15) || b_pending) {   
@@ -350,29 +350,6 @@ if (i_openOrdersNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrdersNo; }
 		      f_bollingerBandPrev = f_bollingerBand;
 	      }
 	      temp_T1 = (m_fastFilter[i] - f_bollingerBand)*(f_fastFilterPrev - f_bollingerBandPrev);
-      	
-      	/**
-         temp_T1 = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],3,1);
-         f_VWAP = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],i_mode,filter_supersmoother,false,f_deviationPerc,1000,m_sequence[i][0],2,1);       //needed at every tick
-         if (temp_T1 > 0.001) {              // previous
-            if (m_sequence[i][2]<1) {         // new sequence, so update the pips
-	            f_central = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,4,1);
-	            f_band = iCustom(m_names[i],0,"petousis_VWAPsignal",m_filter[i][0],m_filter[i][1],3,filter_supersmoother,false,f_deviationPerc,1000,-1,2,1);
-	            m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_band),0);
-            }
-	         // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
-	         if (temp_T1 > f_VWAP && m_positionDirection[i]<1 && b_long && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
-               m_signal[i] = 1;
-            }
-            else if (temp_T1 < f_VWAP && m_positionDirection[i]>-1 && b_short && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
-               m_signal[i] = -1;
-            }
-            else {
-               m_signal[i] = 0;
-            }
-		   }
-         else { m_signal[i] = 0; }
-         **/
          
           if (temp_T1 < 0) {
             if (m_sequence[i][2]<1) {         // new sequence, so update the pips
@@ -441,12 +418,12 @@ if (b_lockIn) {
 			else { res = OrderClose(m_ticket[i],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }         // slippage 100, so it always closes
             if (res==true) {
                Alert("Order Buy closed."); 
-               if (b_useCumLosses==false) { 
-		       if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
-						m_sequence[i][1] = temp_sequence[1] + temp_sequence[5];  // update cum losses
-		       }
-	       }
-               else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
+               if (b_useCumLosses==false) {
+                  if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+					      m_sequence[i][1] = temp_sequence[1]; // update cum losses
+                  }
+                  else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
+               }
                break;
             }
             if (Fun_Error(GetLastError())==1) {
@@ -464,12 +441,12 @@ if (b_lockIn) {
 			else { res = OrderClose(m_ticket[i],OrderLots(),MarketInfo(m_names[i],MODE_ASK),100); }
             if (res==true) {
                Alert("Order Sell closed. "); 
-	       if (b_useCumLosses==false) { 
-		       if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
-						m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; // update cum losses
-		       }
-	       }
-               else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
+               if (b_useCumLosses==false) {
+                  if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+   					m_sequence[i][1] = temp_sequence[1]; // update cum losses
+                  }
+                  else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
+               }
                break;
             }
             if (Fun_Error(GetLastError())==1) {
@@ -496,16 +473,16 @@ if (b_lockIn) {
             // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
 	    //f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
 	    //m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-	    if (b_cumLosses) { 
-	    	m_loss = -f_cumLossesAvg; 
-		m_sequence[i][1] = f_cumLossesAvg; } 
-	    else { m_loss = -m_sequence[i][1]; }
-	    if (m_loss>m_profitInUSD[i]*f_percWarp) {
-	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-	    }
-	    else {
-	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-	    }
+            if (b_useCumLosses) { 
+               f_loss = -f_cumLossesAvg; 
+               m_sequence[i][1] = f_cumLossesAvg; } 
+            else { f_loss = -m_sequence[i][1]; }
+            if (f_loss>m_profitInUSD[i]*f_percWarp) {
+   	    	   m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+      	    }
+      	    else {
+      	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+      	    }
 	    Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                if (m_sequence[i][0] < 0) { 
@@ -554,12 +531,12 @@ if (b_lockIn) {
             // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
 	    // f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
 	    // m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-            if (b_cumLosses) { 
-	    	m_loss = -f_cumLossesAvg; 
-		m_sequence[i][1] = f_cumLossesAvg; } 
-	    else { m_loss = -m_sequence[i][1]; }
-	    if (m_loss>m_profitInUSD[i]*f_percWarp) {
-	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(m_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+            if (b_useCumLosses) { 
+               f_loss = -f_cumLossesAvg; 
+               m_sequence[i][1] = f_cumLossesAvg; } 
+            else { f_loss = -m_sequence[i][1]; }
+            if (f_loss>m_profitInUSD[i]*f_percWarp) {
+	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
 	    }
 	    else {
 	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
@@ -690,11 +667,11 @@ if (b_lockIn) {
           if (OrderCloseTime()>0) {
       	output[1] = StrToDouble(result[2]);   // cum loss
       	output[3] = (double)iBarShift(symbol,timeFrame,OrderCloseTime(),false); 
-	output[5] = OrderProfit() + OrderCommission() + OrderSwap(); }
+      	output[5] = OrderProfit() + OrderCommission() + OrderSwap(); }
           else {
       	output[1] = StrToDouble(result[2]);   // cum loss
       	output[3] = 0.0;
-	output[5] = 0.0;
+      	output[5] = 0.0;
           }
           output[4] = OrderTicket();
           temp = StringFind(result[3],"[");
