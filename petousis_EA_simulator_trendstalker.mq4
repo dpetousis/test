@@ -35,7 +35,7 @@ bool b_short = true;
 input bool b_noNewSequence = false;
 input string s_inputFileName = "TF_DEMO_H1_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
-bool b_useCumLosses = false;
+input bool b_useCumLosses = false;
 // Percentage of TP above which trade will always be a winning or breakeven
 double const f_percWarp = 0.3;
 double const f_adjustLevel = 0.1;
@@ -418,12 +418,15 @@ if (b_lockIn) {
 			else { res = OrderClose(m_ticket[i],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }         // slippage 100, so it always closes
             if (res==true) {
                Alert("Order Buy closed."); 
-               if (b_useCumLosses==false) {
-                  if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
-					      m_sequence[i][1] = temp_sequence[1]; // update cum losses
-                  }
-                  else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
+               /**
+               if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+				      if (b_useCumLosses) {
+				         // f_cumLosses = f_cumLosses + temp_sequence[5]/i_openOrderNo;
+				      }
+				      else { m_sequence[i][1] = temp_sequence[1]+temp_sequence[5]; } // update cum losses
                }
+               else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
+               **/
                break;
             }
             if (Fun_Error(GetLastError())==1) {
@@ -441,12 +444,15 @@ if (b_lockIn) {
 			else { res = OrderClose(m_ticket[i],OrderLots(),MarketInfo(m_names[i],MODE_ASK),100); }
             if (res==true) {
                Alert("Order Sell closed. "); 
-               if (b_useCumLosses==false) {
-                  if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
-   					m_sequence[i][1] = temp_sequence[1]; // update cum losses
-                  }
-                  else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
+               /**
+               if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+				      if (b_useCumLosses) {
+				         // f_cumLosses = f_cumLosses + temp_sequence[5]/i_openOrderNo;
+				      }
+				      else { m_sequence[i][1] = temp_sequence[1]+temp_sequence[5]; } // update cum losses
                }
+               else { PrintFormat("Cannot read closed trade comment %s",m_names[i]); }
+               **/
                break;
             }
             if (Fun_Error(GetLastError())==1) {
@@ -461,7 +467,7 @@ if (b_lockIn) {
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
-      if (((m_signal[i]>0) || (m_signal[i]<0)) && !(b_noNewSequence && m_sequence[i][0]<0))                             // Send order when receive buy or sell signal
+      if (((m_signal[i]>0) || (m_signal[i]<0)) && !(b_noNewSequence && m_sequence[i][0]<0) && m_ticket[i]==0)   // Send order when receive buy or sell signal 
         {
          // Open Buy
          if (m_signal[i]>0) 
