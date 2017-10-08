@@ -163,8 +163,7 @@ int OnInit()
    }
    
    // Setting the Global variables
-   GlobalVariableSet("gv_stratMagicNumber",-1);
-   GlobalVariableSet("gv_product",-1);
+   GlobalVariableSet("gv_productMagicNumber",-1);
    GlobalVariableSet("gv_slowFilter",-1);
    
    Alert ("Function init() triggered at start for ",symb);// Alert
@@ -266,14 +265,13 @@ void OnTimer() //void OnTick()
      }
 
 // SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
-if ((int)GlobalVariableGet("gv_stratMagicNumber")==i_stratMagicNumber) {
-	int temp_i = (int)GlobalVariableGet("gv_product");
+int temp_i = (int)GlobalVariableGet("gv_productMagicNumber");
+if ((int)MathFloor(temp_i/100)==i_stratMagicNumber) {
 	m_sequence[temp_i][0] = GlobalVariableGet("gv_slowFilter");
 	Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]);
 	// resetting
-	GlobalVariableSet("gv_stratMagicNumber",-1);
-   	GlobalVariableSet("gv_product",-1);
-   	GlobalVariableSet("gv_slowFilter",-1);
+   GlobalVariableSet("gv_productMagicNumber",-1);
+   GlobalVariableSet("gv_slowFilter",-1);
 }
 
 // UPDATE STATUS/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -467,7 +465,7 @@ if (b_lockIn) {
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
-      if (((m_signal[i]>0) || (m_signal[i]<0)) && !(b_noNewSequence && m_sequence[i][0]<0) && m_ticket[i]==0)   // Send order when receive buy or sell signal 
+      if (((m_signal[i]>0) || (m_signal[i]<0)) && !(b_noNewSequence && m_sequence[i][0]<0))   // Send order when receive buy or sell signal 
         {
          // Open Buy
          if (m_signal[i]>0) 
@@ -476,30 +474,29 @@ if (b_lockIn) {
             ASK = MarketInfo(m_names[i],MODE_ASK);
             SL=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-            // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
-	    //f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
-	    //m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-            if (b_useCumLosses) { 
-               f_loss = -f_cumLossesAvg; 
-               m_sequence[i][1] = f_cumLossesAvg; } 
-            else { f_loss = -m_sequence[i][1]; }
-            if (f_loss>m_profitInUSD[i]*f_percWarp) {
-   	    	   m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-      	    }
-      	    else {
-      	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-      	    }
-	    Print("Attempt to open Buy ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]); 
+            
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
+               // LOTS
+               if (b_useCumLosses) { 
+                  f_loss = -f_cumLossesAvg; 
+                  m_sequence[i][1] = f_cumLossesAvg; } 
+               else { f_loss = -m_sequence[i][1]; }
+               if (f_loss>m_profitInUSD[i]*f_percWarp) {
+      	    	   m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+         	    }
+         	    else {
+         	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+         	    }
+         	    // COMMENT
                if (m_sequence[i][0] < 0) { 
    	       		temp_vwap = m_fastFilter[i] - MarketInfo(m_names[i],MODE_POINT); 
    	       		s_adjFlag = ""; } 
-      		else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>f_adjustLevel*(ASK-SL))) {
+      		   else if (m_sequence[i][0]>0 && (ASK-m_sequence[i][0]>f_adjustLevel*(ASK-SL))) {
       			   temp_vwap = m_fastFilter[i] - MarketInfo(m_names[i],MODE_POINT); 
       			   s_adjFlag = "A"; }	// update if last move too big
-      		else { temp_vwap = m_sequence[i][0]; 
+      		   else { temp_vwap = m_sequence[i][0]; 
       		         s_adjFlag = "";
-            }
+               }
                s_comment = StringConcatenate(IntegerToString(m_myMagicNumber[i]),"_",DoubleToStr(temp_vwap,(int)MarketInfo(m_names[i],MODE_DIGITS)),s_adjFlag,"_",DoubleToStr(m_sequence[i][1],2),"_",DoubleToStr(m_sequence[i][2]+1,0));
                ticket=OrderSend(m_names[i],OP_BUYLIMIT,m_lots[i],ASK,slippage,SL,TP,s_comment,m_myMagicNumber[i]); //Opening Buy
                Print("OrderSend returned:",ticket," Lots: ",m_lots[i]); 
@@ -512,7 +509,7 @@ if (b_lockIn) {
                   m_sequence[i][0] = temp_vwap;
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
-				  m_ticket[i] = ticket;
+				      m_ticket[i] = ticket;
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo bought "+m_names[i]+" "+DoubleToStr(Period(),0)); 
@@ -525,7 +522,7 @@ if (b_lockIn) {
                if (res) { Print("Order modified successfully:",m_names[i]); }
                else { Alert(m_names[i],": Order modification failed with error #", GetLastError()); }
             }
-            else { Alert("ERROR - ",m_names[i]," System is sending a buy order, but it is neither opening nor modifying."); }
+            else { Alert("ERROR - ",m_names[i]," System is sending a buy signal, but it is neither opening nor modifying."); }
            }
            // Open Sell
          if (m_signal[i]<0) 
@@ -534,21 +531,19 @@ if (b_lockIn) {
             BID = MarketInfo(m_names[i],MODE_BID);
             SL=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
             TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-            // Warping factor to make sure that increasing losses do not make a winning trade out of reach - for no warping factor=1
-	    // f_warpFactor = floor(1+(-m_sequence[i][1]/m_profitInUSD[i])*((1-f_percWarp)/f_percWarp));
-	    // m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(-m_sequence[i][1]+f_warpFactor*m_profitInUSD[i]) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-            if (b_useCumLosses) { 
-               f_loss = -f_cumLossesAvg; 
-               m_sequence[i][1] = f_cumLossesAvg; } 
-            else { f_loss = -m_sequence[i][1]; }
-            if (f_loss>m_profitInUSD[i]*f_percWarp) {
-	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-	    }
-	    else {
-	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
-	    }
-	    Print("Attempt to open Sell ",m_lots[i]," of ",m_names[i],". Waiting for response.. Magic Number: ",m_myMagicNumber[i]);
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {
+               // LOTS
+               if (b_useCumLosses) { 
+                  f_loss = -f_cumLossesAvg; 
+                  m_sequence[i][1] = f_cumLossesAvg; } 
+               else { f_loss = -m_sequence[i][1]; }
+               if (f_loss>m_profitInUSD[i]*f_percWarp) {
+         	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+         	    }
+         	    else {
+         	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
+         	    }
+         	    // COMMENT
                 if (m_sequence[i][0] < 0) { 
    	       		temp_vwap = m_fastFilter[i] + MarketInfo(m_names[i],MODE_POINT); 
    	       		s_adjFlag = ""; } 
@@ -583,7 +578,7 @@ if (b_lockIn) {
                if (res) { Print("Order modified successfully:",m_names[i]); }
                else { Alert(m_names[i],": Order modification failed with error #", GetLastError()); }
                }
-            else { Alert("ERROR - ",m_names[i]," System is sending a sell order, but it is neither opening nor modifying."); }
+            else { Alert("ERROR - ",m_names[i]," System is sending a sell signal, but it is neither opening nor modifying."); }
            }                                
         }
     }
