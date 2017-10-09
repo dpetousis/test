@@ -32,10 +32,10 @@
 //input switches
 bool b_long = true;
 bool b_short = true;
-input bool b_noNewSequence = false;
+extern bool b_noNewSequence = false;
 input string s_inputFileName = "TF_DEMO_H1_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
-input bool b_useCumLosses = false;
+extern bool b_useCumLosses = false;
 // Percentage of TP above which trade will always be a winning or breakeven
 double const f_percWarp = 0.3;
 double const f_adjustLevel = 0.1;
@@ -295,9 +295,9 @@ for(int i=0; i<i_namesNumber; i++) {
 							m_sequence[i][2] = 0; }
 						else {
 						   // dont copy over slow filter because it may have been modified externally
-						   if (b_useCumLosses) { f_cumLosses = f_cumLosses + temp_sequence[5]; }
-						   else { m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; }
-							m_sequence[i][2] = temp_sequence[2];
+						   f_cumLosses = f_cumLosses + temp_sequence[5];
+						   if (b_useCumLosses=false) { m_sequence[i][1] = temp_sequence[1] + temp_sequence[5]; }
+						   m_sequence[i][2] = temp_sequence[2];
 						}
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = false;
