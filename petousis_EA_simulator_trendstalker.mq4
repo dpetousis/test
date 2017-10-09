@@ -267,7 +267,14 @@ void OnTimer() //void OnTick()
 // SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
 int temp_i = (int)GlobalVariableGet("gv_productMagicNumber");
 if ((int)MathFloor(temp_i/100)==i_stratMagicNumber) {
-	m_sequence[temp_i][0] = GlobalVariableGet("gv_slowFilter");
+	if (GlobalVariableGet("gv_slowFilter")<0) {
+		if (m_positionDirection<0) {
+			m_sequence[temp_i][0] = iCustom(m_names[temp_i],0,"petousis_supersmoother",m_filter[temp_i][1],filter_history,1,1) + MarketInfo(m_names[temp_i],MODE_POINT); }
+		elseif (m_positionDirection>0) {
+			m_sequence[temp_i][0] = iCustom(m_names[temp_i],0,"petousis_supersmoother",m_filter[temp_i][1],filter_history,1,1) - MarketInfo(m_names[temp_i],MODE_POINT); }
+		else { Alert("The slow filter change failed because position direction is 0. There is no existing trade."); }
+	}
+	else { m_sequence[temp_i][0] = GlobalVariableGet("gv_slowFilter"); }
 	Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]);
 	// resetting
    GlobalVariableSet("gv_productMagicNumber",-1);
