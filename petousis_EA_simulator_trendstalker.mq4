@@ -30,8 +30,6 @@
 
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches
-bool b_long = true;
-bool b_short = true;
 extern bool b_noNewSequence = false;
 input string s_inputFileName = "TF_DEMO_H1_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
@@ -362,10 +360,10 @@ if (i_openOrderNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrderNo; }
 	            m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_bollingerBand),0);
             }
 	         // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
-            if (m_fastFilter[i]>f_bollingerBand && m_positionDirection[i]<1 && b_long && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
+            if (m_fastFilter[i]>f_bollingerBand && m_positionDirection[i]<1 && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
                m_signal[i] = 1;
             }
-	         else if (m_fastFilter[i]<f_bollingerBand && m_positionDirection[i]>-1 && b_short && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
+	         else if (m_fastFilter[i]<f_bollingerBand && m_positionDirection[i]>-1 && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
                m_signal[i] = -1;
             }
             else {
