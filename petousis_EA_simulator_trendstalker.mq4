@@ -164,6 +164,12 @@ int OnInit()
    GlobalVariableSet("gv_productMagicNumber",-1);
    GlobalVariableSet("gv_slowFilter",-1);
    
+   // Finding the minimum bands for each currency
+   for(int i=0; i<i_namesNumber; i++) {
+   
+   
+   }
+   
    Alert ("Function init() triggered at start for ",symb);// Alert
    if (IsDemo() == false) { Alert("THIS IS NOT A DEMO RUN"); }
    
