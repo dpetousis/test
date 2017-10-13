@@ -158,17 +158,21 @@ int OnInit()
 			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); }
 		 else { PrintFormat("Cannot read open trade comment %s",m_names[i]); }
       }
+      
+      // Finding the minimum bands for each currency
+      for (int j=0;j<i_bandsHistory;j++) {
+	m_bandsTSAvg[i] = m_bandsTSAvg[i] + iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_UPPER,j+1) - 
+                      iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_LOWER,j+1);
+	f_barSizeTSAvg = f_barSizeTSAvg + iHigh(m_names[i],timeFrame,j+1) - iLow(m_names[i],timeFrame,j+1);
+      }
+      m_bandsTSAvg[i] = m_bandsTSAvg[i] / i_bandsHistory;
+      f_barSizeTSAvg = f_barSizeTSAvg / i_bandsHistory;
+      Alert(m_names[i]," Ratio: ",f_barSizeTSAvg/m_bandsTSAvg[i]);
    }
    
    // Setting the Global variables
    GlobalVariableSet("gv_productMagicNumber",-1);
    GlobalVariableSet("gv_slowFilter",-1);
-   
-   // Finding the minimum bands for each currency
-   for(int i=0; i<i_namesNumber; i++) {
-   
-   
-   }
    
    Alert ("Function init() triggered at start for ",symb);// Alert
    if (IsDemo() == false) { Alert("THIS IS NOT A DEMO RUN"); }
