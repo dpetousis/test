@@ -165,7 +165,7 @@ int OnInit()
                       iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_LOWER,j+1);
 	f_barSizeTSAvg = f_barSizeTSAvg + iHigh(m_names[i],timeFrame,j+1) - iLow(m_names[i],timeFrame,j+1);
       }
-      m_bandsTSAvg[i] = m_bandsTSAvg[i] / i_bandsHistory;
+      m_bandsTSAvg[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * m_bandsTSAvg[i] / i_bandsHistory, 0); in pips
       f_barSizeTSAvg = f_barSizeTSAvg / i_bandsHistory;
       Alert(m_names[i]," Ratio: ",f_barSizeTSAvg/m_bandsTSAvg[i]);
    }
@@ -367,7 +367,7 @@ if (i_openOrderNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrderNo; }
           if (temp_T1 < 0) {
             if (m_sequence[i][2]<1) {         // new sequence, so update the pips
                f_central = iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_MAIN,1);
-	            m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_bollingerBand),0);
+	            m_bollingerDeviationInPips[i] = NormalizeDouble(MathMax((1/MarketInfo(m_names[i],MODE_POINT)) * 2 * MathAbs(f_central-f_bollingerBand), m_bandsTSAvg[i]),0);
             }
 	         // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
             if (m_fastFilter[i]>f_bollingerBand && m_positionDirection[i]<1 && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i]) {
