@@ -167,7 +167,10 @@ int OnInit()
       }
       m_bandsTSAvg[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * m_bandsTSAvg[i] / i_bandsHistory, 0); in pips
       f_barSizeTSAvg = f_barSizeTSAvg / i_bandsHistory;
-      Alert(m_names[i]," Ratio: ",f_barSizeTSAvg/m_bandsTSAvg[i]);
+      if (f_barSizeTSAvg/m_bandsTSAvg[i] > 0.10) {
+      	Alert(m_names[i]," Ratio: ",f_barSizeTSAvg/m_bandsTSAvg[i]);
+	m_tradeFlag[i] = false;
+      }
    }
    
    // Setting the Global variables
