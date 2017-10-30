@@ -160,6 +160,7 @@ int OnInit()
       }
       
       // Finding the minimum bands for each currency
+      f_overlap = 0.0;
       for (int j=0;j<i_bandsHistory;j++) {
 	// measure of bar size vs band width
 	m_bandsTSAvg[i] = m_bandsTSAvg[i] + iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_UPPER,j+1) - 
