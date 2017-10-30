@@ -161,16 +161,27 @@ int OnInit()
       
       // Finding the minimum bands for each currency
       for (int j=0;j<i_bandsHistory;j++) {
+	// measure of bar size vs band width
 	m_bandsTSAvg[i] = m_bandsTSAvg[i] + iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_UPPER,j+1) - 
                       iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_LOWER,j+1);
 	f_barSizeTSAvg = f_barSizeTSAvg + iHigh(m_names[i],timeFrame,j+1) - iLow(m_names[i],timeFrame,j+1);
+	// neighbouring-bar overlap measure
+	f_low1 = MathMin(iClose(m_names[i],timeFrame,j+1),iOpen(m_names[i],timeFrame,j+1));
+	f_low2 = MathMin(iClose(m_names[i],timeFrame,j+2),iOpen(m_names[i],timeFrame,j+2));
+	f_high1 = MathMax(iClose(m_names[i],timeFrame,j+1),iOpen(m_names[i],timeFrame,j+1));
+	f_high2 = MathMax(iClose(m_names[i],timeFrame,j+2),iOpen(m_names[i],timeFrame,j+2));
+	f_scale = MathMax(f_high1,f_high2) - MathMin(f_low1,f_low2);
+	f_overlap = f_overlap + MathMax((MathMin(f_high1,f_high2)-MathMax(f_low1,f_low2))/f_scale,0.0);
       }
+      // normalize
       m_bandsTSAvg[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * m_bandsTSAvg[i] / i_bandsHistory, 0); in pips
       f_barSizeTSAvg = f_barSizeTSAvg / i_bandsHistory;
+      f_overlap = f_overlap / i_bandsHistory;
       if (f_barSizeTSAvg/m_bandsTSAvg[i] > 0.10) {
       	Alert(m_names[i]," Ratio: ",f_barSizeTSAvg/m_bandsTSAvg[i]);
 	m_tradeFlag[i] = false;
       }
+      Alert(m_names[i]," Overlap Measure: ",f_overlap);
    }
    
    // Setting the Global variables
