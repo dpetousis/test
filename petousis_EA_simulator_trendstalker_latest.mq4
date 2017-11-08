@@ -203,7 +203,8 @@ int OnInit()
    if (GlobalVariableCheck("gv_creditBalance")) { f_creditBalance = GlobalVariableGet("gv_creditBalance"); }
    else { GlobalVariableSet("gv_creditBalance",0.0); }
    for(int i=0; i<i_namesNumber; i++) {
-	if (m_sequence[i][1]<temp_penaltyThreshold) { m_credit[i] = temp_penalty; }
+   	// m_sequence[i][1] is a negative number, the GVs are always amounts so penalty will be negative
+	if (m_sequence[i][1]>-temp_penaltyThreshold) { m_credit[i] = -temp_penalty; }
 	else { m_credit[i] = 0.0; }
    }
    
@@ -382,16 +383,16 @@ if ((int)MathFloor(GlobalVariableGet("gv_productMagicNumber")/100)==i_stratMagic
 }
 
 // GIVING CREDIT TO STRUGGLING SEQUENCE BY PENALISING OTHERS
-temp_i = (int)GlobalVariableGet("gv_creditProductMagicNumber");
+temp_i = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
 if (temp_i>0) {			// only enter loop if there is new amount to be credited
 	temp_penalty = GlobalVariableGet("gv_creditPenaltyAmount");
 	temp_penaltyThreshold = GlobalVariableGet("gv_creditPenaltyThreshold");
 	for(int i=0; i<i_namesNumber; i++) {
 		if ((int)MathFloor(temp_i/100)==i_stratMagicNumber && temp_i==i) {
-			m_credit[i] = MathMin(0.0,m_credit[i]) + GlobalVariableGet("gv_creditAmount");
+			m_credit[i] = MathMax(0.0,m_credit[i]) + GlobalVariableGet("gv_creditAmount");
 		}
-		else if (m_sequence[i][1]<temp_penaltyThreshold) {
-			m_credit[i] = temp_penalty;
+		else if (m_sequence[i][1]>-temp_penaltyThreshold) {
+			m_credit[i] = -temp_penalty;
 		}
 		else { m_credit[i] = 0.0; }
 	}
