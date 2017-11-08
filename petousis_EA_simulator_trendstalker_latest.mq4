@@ -531,7 +531,10 @@ if (b_lockIn) {
                if (b_useCumLosses) { 
                   f_loss = -f_cumLossesAvg; 
                   m_sequence[i][1] = f_cumLossesAvg; } 
-               else { f_loss = -m_sequence[i][1]; }
+               else { 
+	       	  f_loss = -m_sequence[i][1] + m_credit[i]; 
+	       	  m_sequence[i][1] = -f_loss; 
+	       }
                if (f_loss>m_profitInUSD[i]*f_percWarp) {
       	    	   m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
          	    }
@@ -587,7 +590,10 @@ if (b_lockIn) {
                if (b_useCumLosses) { 
                   f_loss = -f_cumLossesAvg; 
                   m_sequence[i][1] = f_cumLossesAvg; } 
-               else { f_loss = -m_sequence[i][1]; }
+               else { 
+	       	  f_loss = -m_sequence[i][1] + m_credit[i]; 
+	          m_sequence[i][1] = -f_loss;
+	       }
                if (f_loss>m_profitInUSD[i]*f_percWarp) {
          	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
          	    }
