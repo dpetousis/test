@@ -196,16 +196,14 @@ int OnInit()
    GlobalVariableSet("gv_slowFilter",-1);
    GlobalVariableSet("gv_creditProductMagicNumber",-1);
    GlobalVariableSet("gv_creditAmount",0.0);
-   if (GlobalVariableCheck("gv_creditPenaltyAmount")) { temp_penalty = GlobalVariableGet("gv_creditPenaltyAmount"); }
-   else { GlobalVariableSet("gv_creditPenaltyAmount",0.0); }
-   if (GlobalVariableCheck("gv_creditPenaltyThreshold")) { temp_penaltyThreshold = GlobalVariableGet("gv_creditPenaltyThreshold"); }
-   else { GlobalVariableSet("gv_creditPenaltyThreshold",0.0); }
    if (GlobalVariableCheck("gv_creditBalance")) { f_creditBalance = GlobalVariableGet("gv_creditBalance"); }
    else { GlobalVariableSet("gv_creditBalance",0.0); }
-   for(int i=0; i<i_namesNumber; i++) {
-   	// m_sequence[i][1] is a negative number, the GVs are always amounts so penalty will be negative
-	if (m_sequence[i][1]>-temp_penaltyThreshold) { m_credit[i] = -temp_penalty; }
-	else { m_credit[i] = 0.0; }
+   if (f_creditBalance>0) {
+	   for(int i=0; i<i_namesNumber; i++) {
+		// m_sequence[i][1] is a negative number, the GVs are always amounts so penalty will be negative
+		if (m_sequence[i][1]>-f_creditPenaltyThreshold) { m_credit[i] = -f_creditPenalty; }
+		else { m_credit[i] = 0.0; }
+	   }
    }
    
    Alert ("Function init() triggered at start for ",symb);// Alert
@@ -317,7 +315,10 @@ for(int i=0; i<i_namesNumber; i++) {
 						if (temp_sequence[1]+temp_sequence[5]>0) {	//ie trade sequence closed positive 
 							m_sequence[i][0] = -1;
 							m_sequence[i][1] = 0;
-							m_sequence[i][2] = 0; }
+							m_sequence[i][2] = 0; 
+							f_creditBalance = f_creditBalance - f_creditPenaltyAmount; 
+							GlobalVariableSet("gv_creditBalance",f_creditBalance);
+						}
 						else {
 						   // dont copy over slow filter because it may have been modified externally
 						   f_cumLosses = f_cumLosses + temp_sequence[5];
@@ -385,18 +386,17 @@ if ((int)MathFloor(GlobalVariableGet("gv_productMagicNumber")/100)==i_stratMagic
 // GIVING CREDIT TO STRUGGLING SEQUENCE BY PENALISING OTHERS
 temp_i = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
 if (temp_i>0) {			// only enter loop if there is new amount to be credited
-	temp_penalty = GlobalVariableGet("gv_creditPenaltyAmount");
-	temp_penaltyThreshold = GlobalVariableGet("gv_creditPenaltyThreshold");
 	for(int i=0; i<i_namesNumber; i++) {
 		if ((int)MathFloor(temp_i/100)==i_stratMagicNumber && temp_i==i) {
 			m_credit[i] = MathMax(0.0,m_credit[i]) + GlobalVariableGet("gv_creditAmount");
 		}
-		else if (m_sequence[i][1]>-temp_penaltyThreshold) {
-			m_credit[i] = -temp_penalty;
+		else if (m_sequence[i][1]>-f_creditPenaltyThreshold) {
+			m_credit[i] = -f_creditPenalty;
 		}
 		else { m_credit[i] = 0.0; }
 	}
 	GlobalVariableSet("gv_creditProductMagicNumber",-1);
+	GlobalVariableSet("gv_creditBalance",f_creditBalance+GlobalVariableGet("gv_creditAmount"));
 	GlobalVariableSet("gv_creditAmount",0);
 }
 
