@@ -173,29 +173,39 @@ int OnInit()
                             iBands(m_names[i],timeFrame,(int)m_filter[i][0],bollinger_deviations,0,0,MODE_LOWER,j+1);
       	f_barSizeTSAvg = f_barSizeTSAvg + iHigh(m_names[i],timeFrame,j+1) - iLow(m_names[i],timeFrame,j+1);
       	// neighbouring-bar overlap measure
-      	/**
-	      f_low1 = MathMin(iClose(m_names[i],timeFrame,j+1),iOpen(m_names[i],timeFrame,j+1));
+	f_low1 = MathMin(iClose(m_names[i],timeFrame,j+1),iOpen(m_names[i],timeFrame,j+1));
       	f_low2 = MathMin(iClose(m_names[i],timeFrame,j+2),iOpen(m_names[i],timeFrame,j+2));
       	f_high1 = MathMax(iClose(m_names[i],timeFrame,j+1),iOpen(m_names[i],timeFrame,j+1));
       	f_high2 = MathMax(iClose(m_names[i],timeFrame,j+2),iOpen(m_names[i],timeFrame,j+2));
-      	f_scale = MathMax(f_high1,f_high2) - MathMin(f_low1,f_low2);
-      	f_overlap = f_overlap + MathMax((MathMin(f_high1,f_high2)-MathMax(f_low1,f_low2))/f_scale,0.0);
-      	**/
+      	f_scale = MathMax(iHigh(m_names[i],timeFrame,j+1),iHigh(m_names[i],timeFrame,j+2)) - MathMin(iLow(m_names[i],timeFrame,j+1),iLow(m_names[i],timeFrame,j+2));
+	f_overlap = f_overlap + MathMax((MathMin(f_high1,f_high2)-MathMax(f_low1,f_low2))/f_scale,0.0);
       }
       m_bandsTSAvg[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * m_bandsTSAvg[i] / i_bandsHistory, 0); // in pips
       f_barSizeTSAvg = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * f_barSizeTSAvg / i_bandsHistory, 0);
-      //f_overlap = f_overlap / i_bandsHistory;
+      f_overlap = f_overlap / i_bandsHistory;
       Alert(m_names[i]," Ratio: ",f_barSizeTSAvg/m_bandsTSAvg[i]);
       if ((f_barSizeTSAvg/m_bandsTSAvg[i] > 0.11) && (m_sequence[i][0]<0)) {        // if noisy and no sequence already live -> exclude pair
          m_tradeFlag[i] = false;
          Alert(m_names[i]," removed. Ratio: ",f_barSizeTSAvg/m_bandsTSAvg[i]);
       }   
-      //Alert(m_names[i]," Overlap Measure: ",f_overlap);
+      Alert(m_names[i]," Overlap Measure: ",f_overlap);
    }
    
    // Setting the Global variables
    GlobalVariableSet("gv_productMagicNumber",-1);
    GlobalVariableSet("gv_slowFilter",-1);
+   GlobalVariableSet("gv_creditProductMagicNumber",-1);
+   GlobalVariableSet("gv_creditAmount",0.0);
+   if (GlobalVariableCheck("gv_creditPenaltyAmount")) { temp_penalty = GlobalVariableGet("gv_creditPenaltyAmount"); }
+   else { GlobalVariableSet("gv_creditPenaltyAmount",0.0); }
+   if (GlobalVariableCheck("gv_creditPenaltyThreshold")) { temp_penaltyThreshold = GlobalVariableGet("gv_creditPenaltyThreshold"); }
+   else { GlobalVariableSet("gv_creditPenaltyThreshold",0.0); }
+   if (GlobalVariableCheck("gv_creditBalance")) { f_creditBalance = GlobalVariableGet("gv_creditBalance"); }
+   else { GlobalVariableSet("gv_creditBalance",0.0); }
+   for(int i=0; i<i_namesNumber; i++) {
+	if (m_sequence[i][1]<temp_penaltyThreshold) { m_credit[i] = temp_penalty; }
+	else { m_credit[i] = 0.0; }
+   }
    
    Alert ("Function init() triggered at start for ",symb);// Alert
    if (IsDemo() == false) { Alert("THIS IS NOT A DEMO RUN"); }
@@ -365,13 +375,29 @@ if ((int)MathFloor(GlobalVariableGet("gv_productMagicNumber")/100)==i_stratMagic
 		else { Alert("The slow filter change failed because position direction is 0. There is no existing trade."); }
 	}
 	else { m_sequence[temp_i][0] = GlobalVariableGet("gv_slowFilter");
-	      Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]); }
-	
+	Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]); }
 	// resetting
-   GlobalVariableSet("gv_productMagicNumber",-1);
-   GlobalVariableSet("gv_slowFilter",-1);
+   	GlobalVariableSet("gv_productMagicNumber",-1);
+   	GlobalVariableSet("gv_slowFilter",-1);
 }
 
+// GIVING CREDIT TO STRUGGLING SEQUENCE BY PENALISING OTHERS
+temp_i = (int)GlobalVariableGet("gv_creditProductMagicNumber");
+if (temp_i>0) {			// only enter loop if there is new amount to be credited
+	temp_penalty = GlobalVariableGet("gv_creditPenaltyAmount");
+	temp_penaltyThreshold = GlobalVariableGet("gv_creditPenaltyThreshold");
+	for(int i=0; i<i_namesNumber; i++) {
+		if ((int)MathFloor(temp_i/100)==i_stratMagicNumber && temp_i==i) {
+			m_credit[i] = MathMin(0.0,m_credit[i]) + GlobalVariableGet("gv_creditAmount");
+		}
+		else if (m_sequence[i][1]<temp_penaltyThreshold) {
+			m_credit[i] = temp_penalty;
+		}
+		else { m_credit[i] = 0.0; }
+	}
+	GlobalVariableSet("gv_creditProductMagicNumber",-1);
+	GlobalVariableSet("gv_creditAmount",0);
+}
 
 // Make sure rest of ontimer() does not run continuously when not needed
    if ((Minute()>55 || Minute()<15) || b_pending) {   
