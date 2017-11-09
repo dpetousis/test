@@ -48,8 +48,6 @@ double const bollinger_deviations = 1.5;
 input int const bollinger_mode = 1;		// 1:MODE_UPPER 2:MODE_LOWER
 //int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
 //bool filter_supersmoother = true;
-extern int slowfilter_productMagicNumber = -1;
-extern double slowfilter_value = -1.0;
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
@@ -191,8 +189,8 @@ int OnInit()
    }
    
    // Setting the Global variables
-   //GlobalVariableSet("gv_productMagicNumber",-1);
-   //GlobalVariableSet("gv_slowFilter",-1);
+   GlobalVariableSet("gv_productMagicNumber",-1);
+   GlobalVariableSet("gv_slowFilter",-1);
    GlobalVariableSet("gv_creditProductMagicNumber",-1);
    GlobalVariableSet("gv_creditAmount",0.0);
    if (GlobalVariableCheck("gv_creditBalance")) { f_creditBalance = GlobalVariableGet("gv_creditBalance"); }
@@ -385,8 +383,8 @@ if (slowfilter_productMagicNumber>0) {
 		Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]); 
 	}
 	// resetting
-   	slowfilter_productMagicNumber = -1;
-   	slowfilter_value = -1.0;
+   	GlobalVariableSet("gv_productMagicNumber",-1);
+   	GlobalVariableSet("gv_slowFilter",-1);
 }
 
 // GIVING CREDIT TO STRUGGLING SEQUENCE BY PENALISING OTHERS
