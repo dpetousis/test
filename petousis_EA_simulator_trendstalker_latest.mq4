@@ -68,7 +68,6 @@ int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
 double temp_sequence[6];
-double f_cumLosses=0.0;
 double m_bandsTSAvg[];
 
 //+------------------------------------------------------------------+
@@ -157,8 +156,7 @@ int OnInit()
 			   //THIS PROCESS WILL OVERWRITE ANY EXTERNALLY MODIFIED SLOW FILTERS - THEY WILL NEED TO BE RESET EXTERNALLY AGAIN
 			   m_sequence[i][j] = temp_sequence[j];
 			}
-			f_cumLosses = f_cumLosses + m_sequence[i][1];
-			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]," ",f_cumLosses);
+			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]);
 			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); }
 		 else { PrintFormat("Cannot read open trade comment %s",m_names[i]); }
       }
@@ -320,7 +318,6 @@ for(int i=0; i<i_namesNumber; i++) {
 						}
 						else {
 						   // dont copy over slow filter because it may have been modified externally
-						   f_cumLosses = f_cumLosses + temp_sequence[5];
 						   m_sequence[i][1] = temp_sequence[1] + temp_sequence[5];
 						   m_sequence[i][2] = temp_sequence[2];
 						}
@@ -359,7 +356,6 @@ for(int i=0; i<i_namesNumber; i++) {
 			else { Alert("Failed to select trade: ",m_ticket[i]); }
 		}
       }
-      //f_cumLosses = f_cumLosses + m_sequence[i][1];
 }
 
 // SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
