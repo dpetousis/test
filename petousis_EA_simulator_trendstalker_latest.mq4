@@ -313,8 +313,6 @@ for(int i=0; i<i_namesNumber; i++) {
 							m_sequence[i][0] = -1;
 							m_sequence[i][1] = 0;
 							m_sequence[i][2] = 0; 
-							f_creditBalance = f_creditBalance - f_creditPenaltyAmount; 
-							GlobalVariableSet("gv_creditBalance",f_creditBalance);
 						}
 						else {
 						   // dont copy over slow filter because it may have been modified externally
@@ -534,9 +532,11 @@ if (b_lockIn) {
                // LOTS
                if (-m_sequence[i][1]<f_creditPenaltyThreshold || m_credit[i]>0) { 
                   f_loss = -m_sequence[i][1] + m_credit[i]; 
-		  m_sequence[i][1] = -f_loss; } 
+		  m_sequence[i][1] = -f_loss; 
+		  b_appliedCredit = true; } 
                else { 
 	       	  f_loss = -m_sequence[i][1]; 
+		  b_appliedCredit = false;
 	       }
                if (f_loss>m_profitInUSD[i]*f_percWarp) {
       	    	   m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
@@ -567,6 +567,10 @@ if (b_lockIn) {
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 		  m_ticket[i] = ticket;
+		  if (b_appliedCredit) {
+		  	f_creditBalance = f_creditBalance + MathMin(m_credit[i],0.0); // only want to update for penalties applied not initial credit
+		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
+		  }
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo bought "+m_names[i]+" "+DoubleToStr(Period(),0)); 
@@ -592,9 +596,11 @@ if (b_lockIn) {
                // LOTS
                if (-m_sequence[i][1]<f_creditPenaltyThreshold || m_credit[i]>0) { 
                   f_loss = -m_sequence[i][1] + m_credit[i]; 
-		  m_sequence[i][1] = -f_loss; } 
+		  m_sequence[i][1] = -f_loss; 
+		  b_appliedCredit = true; } 
                else { 
 	       	  f_loss = -m_sequence[i][1]; 
+		  b_appliedCredit = false;
 	       }
                if (f_loss>m_profitInUSD[i]*f_percWarp) {
          	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
@@ -625,6 +631,10 @@ if (b_lockIn) {
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
    				  m_ticket[i] = ticket;
+		if (b_appliedCredit) {
+		  	f_creditBalance = f_creditBalance + MathMin(m_credit[i],0.0); // only want to update for penalties applied not initial credit
+		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
+		  }
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo sold "+m_names[i]+" "+DoubleToStr(Period(),0)); 
