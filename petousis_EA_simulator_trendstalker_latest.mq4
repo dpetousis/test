@@ -367,7 +367,15 @@ if (i_openOrderNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrderNo; }
 // SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
 if ((int)MathFloor(GlobalVariableGet("gv_productMagicNumber")/100)==i_stratMagicNumber) {
 	int temp_i = (int)GlobalVariableGet("gv_productMagicNumber") - i_stratMagicNumber*100 - 1;
-	if (GlobalVariableGet("gv_slowFilter")<0) {
+	if (GlobalVariableGet("gv_slowFilter")<0) {	
+		// if slow filter not provided, set to open order price
+		res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
+		if (res) { m_sequence[temp_i][0] = NormalizeDouble(OrderOpenPrice(),(int)MarketInfo(m_names[temp_i],MODE_DIGITS)); 
+			   Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]);
+		}
+		else { Alert("Slow filter change failed for product ",m_names[temp_i]); }
+		// if slow filter not provided, set to last fast filter value
+		/**
 		if (m_positionDirection[temp_i]<0) {
 			m_sequence[temp_i][0] = NormalizeDouble(iCustom(m_names[temp_i],0,"petousis_supersmoother",m_filter[temp_i][1],filter_history,1,1) + MarketInfo(m_names[temp_i],MODE_POINT),(int)MarketInfo(m_names[temp_i],MODE_DIGITS));
 			Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]); }
@@ -375,9 +383,11 @@ if ((int)MathFloor(GlobalVariableGet("gv_productMagicNumber")/100)==i_stratMagic
 			m_sequence[temp_i][0] = NormalizeDouble(iCustom(m_names[temp_i],0,"petousis_supersmoother",m_filter[temp_i][1],filter_history,1,1) - MarketInfo(m_names[temp_i],MODE_POINT),(int)MarketInfo(m_names[temp_i],MODE_DIGITS));
 			Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]); }
 		else { Alert("The slow filter change failed because position direction is 0. There is no existing trade."); }
+		**/
 	}
 	else { m_sequence[temp_i][0] = GlobalVariableGet("gv_slowFilter");
-	Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]); }
+		Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]); 
+	}
 	// resetting
    	GlobalVariableSet("gv_productMagicNumber",-1);
    	GlobalVariableSet("gv_slowFilter",-1);
