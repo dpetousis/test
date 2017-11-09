@@ -266,7 +266,7 @@ void OnTimer() //void OnTick()
    bool res,isNewBar,temp_flag,b_pending=false;
    double
    temp_vwap=-1.0,
-   SL,TP,BID,ASK,f_fastFilterPrev=0.0,f_central=0.0,f_cumLossesAvg=0,f_loss,
+   SL,TP,BID,ASK,f_fastFilterPrev=0.0,f_central=0.0,f_loss,
    f_orderOpenPrice,f_orderStopLoss,
    f_bollingerBandPrev = 0.0,f_bollingerBand = 0.0,temp_T1=0;
    int m_signal[]; 
@@ -361,7 +361,6 @@ for(int i=0; i<i_namesNumber; i++) {
       }
       //f_cumLosses = f_cumLosses + m_sequence[i][1];
 }
-if (i_openOrderNo>0) { f_cumLossesAvg = f_cumLosses / i_openOrderNo; }
 
 // SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
 if ((int)MathFloor(GlobalVariableGet("gv_productMagicNumber")/100)==i_stratMagicNumber) {
