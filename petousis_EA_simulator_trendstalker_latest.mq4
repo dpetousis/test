@@ -538,12 +538,11 @@ if (b_lockIn) {
             
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                // LOTS
-               if (b_useCumLosses) { 
-                  f_loss = -f_cumLossesAvg; 
-                  m_sequence[i][1] = f_cumLossesAvg; } 
+               if (-m_sequence[i][1]<f_creditPenaltyThreshold || m_credit[i]>0) { 
+                  f_loss = -m_sequence[i][1] + m_credit[i]; 
+		  m_sequence[i][1] = -f_loss; } 
                else { 
-	       	  f_loss = -m_sequence[i][1] + m_credit[i]; 
-	       	  m_sequence[i][1] = -f_loss; 
+	       	  f_loss = -m_sequence[i][1]; 
 	       }
                if (f_loss>m_profitInUSD[i]*f_percWarp) {
       	    	   m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
@@ -573,7 +572,7 @@ if (b_lockIn) {
                   m_sequence[i][0] = temp_vwap;
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
-				      m_ticket[i] = ticket;
+		  m_ticket[i] = ticket;
                   //PlaySound("bikehorn.wav");
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo bought "+m_names[i]+" "+DoubleToStr(Period(),0)); 
@@ -597,12 +596,11 @@ if (b_lockIn) {
             TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {
                // LOTS
-               if (b_useCumLosses) { 
-                  f_loss = -f_cumLossesAvg; 
-                  m_sequence[i][1] = f_cumLossesAvg; } 
+               if (-m_sequence[i][1]<f_creditPenaltyThreshold || m_credit[i]>0) { 
+                  f_loss = -m_sequence[i][1] + m_credit[i]; 
+		  m_sequence[i][1] = -f_loss; } 
                else { 
-	       	  f_loss = -m_sequence[i][1] + m_credit[i]; 
-	          m_sequence[i][1] = -f_loss;
+	       	  f_loss = -m_sequence[i][1]; 
 	       }
                if (f_loss>m_profitInUSD[i]*f_percWarp) {
          	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i],(f_loss/f_percWarp) / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
