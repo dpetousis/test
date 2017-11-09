@@ -386,6 +386,8 @@ if (slowfilter_productMagicNumber>0) {
 }
 
 // GIVING CREDIT TO STRUGGLING SEQUENCE BY PENALISING OTHERS
+f_creditBalance = GlobalVariableGet("gv_creditBalance");
+if (f_creditBalance<=0)
 temp_i = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
 if (temp_i>0) {			// only enter loop if there is new amount to be credited
 	for(int i=0; i<i_namesNumber; i++) {
@@ -530,10 +532,14 @@ if (b_lockIn) {
             
             if (m_isPositionPending[i]==false && m_isPositionOpen[i]==false) {       // if no position and no pending -> send pending order
                // LOTS
-               if (-m_sequence[i][1]<f_creditPenaltyThreshold || m_credit[i]>0) { 
+               if (-m_sequence[i][1]<f_creditPenaltyThreshold && m_credit[i]<0) { 
                   f_loss = -m_sequence[i][1] + m_credit[i]; 
 		  m_sequence[i][1] = -f_loss; 
-		  b_appliedCredit = true; } 
+		  b_appliedPenalty = true; } 
+	       else if (-m_sequence[i][1]<f_creditPenaltyThreshold && m_credit[i]<0) { 
+                  f_loss = -m_sequence[i][1] + m_credit[i]; 
+		  m_sequence[i][1] = -f_loss; 
+		  b_appliedPenalty = true; } 
                else { 
 	       	  f_loss = -m_sequence[i][1]; 
 		  b_appliedCredit = false;
