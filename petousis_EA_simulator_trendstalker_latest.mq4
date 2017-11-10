@@ -48,6 +48,8 @@ double const bollinger_deviations = 1.5;
 input int const bollinger_mode = 1;		// 1:MODE_UPPER 2:MODE_LOWER
 //int i_mode = 3; // 1:VWAP 2:MA, 3:BOLLINGER
 //bool filter_supersmoother = true;
+double const f_creditPenalty = 10.0;
+double const f_creditPenaltyThreshold = 10.0;
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const slippage =10;           // in points
@@ -69,6 +71,9 @@ double m_lotMin[];
 int m_ticket[];
 double temp_sequence[6];
 double m_bandsTSAvg[];
+int i_credit = -1;
+double f_creditAmount = 0.0;
+double f_creditBalance = 0.0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -254,7 +259,7 @@ void OnTimer() //void OnTick()
    int 
    ticket,
    i_orderMagicNumber,i_openOrderNo = 0;
-   bool res,isNewBar,temp_flag,b_pending=false;
+   bool res,isNewBar,temp_flag,b_pending=false,b_appliedCredit=false,b_appliedPenalty=false;
    double
    temp_vwap=-1.0,
    SL,TP,BID,ASK,f_fastFilterPrev=0.0,f_central=0.0,f_loss,
@@ -380,6 +385,7 @@ if (slowfilter_productMagicNumber>0) {
 
 // GIVING CREDIT TO STRUGGLING SEQUENCE BY PENALISING OTHERS
 f_creditBalance = GlobalVariableGet("gv_creditBalance");
+// CAN ONLY APPLY CREDIT TO ONE PAIR AT A TIME. ONLY AFTER IT HAS BEEN APPLIED, WE CAN APPLY ANOTHER ONE
 if ((int)MathFloor(GlobalVariableGet("gv_creditProductMagicNumber")/100) == i_stratMagicNumber) {			// only enter loop if there is new amount to be credited for this strategy
 	i_credit = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
 	f_creditAmount = GlobalVariableGet("gv_creditAmount");
