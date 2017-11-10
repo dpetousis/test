@@ -380,8 +380,8 @@ if (slowfilter_productMagicNumber>0) {
 
 // GIVING CREDIT TO STRUGGLING SEQUENCE BY PENALISING OTHERS
 f_creditBalance = GlobalVariableGet("gv_creditBalance");
-i_credit = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
-if (i_credit>0) {			// only enter loop if there is new amount to be credited
+if ((int)MathFloor(GlobalVariableGet("gv_creditProductMagicNumber")/100) == i_stratMagicNumber) {			// only enter loop if there is new amount to be credited for this strategy
+	i_credit = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
 	f_creditAmount = GlobalVariableGet("gv_creditAmount");
 	GlobalVariableSet("gv_creditProductMagicNumber",-1);
 	GlobalVariableSet("gv_creditBalance",f_creditBalance+GlobalVariableGet("gv_creditAmount"));
