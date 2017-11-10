@@ -518,11 +518,9 @@ if (b_lockIn) {
                // LOTS
                if (-m_sequence[i][1]<f_creditPenaltyThreshold && f_creditBalance>0) { // apply penalty
                   f_loss = -m_sequence[i][1] + f_creditPenalty; 
-		  m_sequence[i][1] = -f_loss; 
 		  b_appliedPenalty = true; } 
 	       else if (i==i_credit && f_creditAmount>0) {		// or apply credit
 	       		f_loss = -m_sequence[i][1] - f_creditAmount; 
-		  	m_sequence[i][1] = -f_loss; 
 			b_appliedCredit = true; }
                else { 
 	       	  f_loss = -m_sequence[i][1]; 
@@ -562,10 +560,13 @@ if (b_lockIn) {
 		  	f_creditBalance = f_creditBalance + f_creditAmount; 
 		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
 			f_creditAmount = 0;	// reset credit amount
+			i_credit = -1;		// reset index
+			m_sequence[i][1] = -f_loss; 
 		  }
 		  if (b_appliedPenalty) {
 		  	f_creditBalance = f_creditBalance - f_creditPenalty; 
 		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
+			m_sequence[i][1] = -f_loss; 
 		  }
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo bought "+m_names[i]+" "+DoubleToStr(Period(),0)); 
@@ -591,11 +592,9 @@ if (b_lockIn) {
                // LOTS
                if (-m_sequence[i][1]<f_creditPenaltyThreshold && f_creditBalance>0) { // apply penalty
                   f_loss = -m_sequence[i][1] + f_creditPenalty; 
-		  m_sequence[i][1] = -f_loss; 
 		  b_appliedPenalty = true; } 
 	       else if (i==i_credit && f_creditAmount>0) {		// or apply credit
 	       		f_loss = -m_sequence[i][1] - f_creditAmount; 
-		  	m_sequence[i][1] = -f_loss; 
 			b_appliedCredit = true; }
                else { 
 	       	  f_loss = -m_sequence[i][1]; 
@@ -635,10 +634,13 @@ if (b_lockIn) {
 		  	f_creditBalance = f_creditBalance + f_creditAmount; 
 		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
 			f_creditAmount = 0;	// reset credit amount
+			i_credit = -1;		// reset index
+			m_sequence[i][1] = -f_loss; 
 		  }
 		  if (b_appliedPenalty) {
 		  	f_creditBalance = f_creditBalance - f_creditPenalty; 
 		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
+			m_sequence[i][1] = -f_loss; 
 		  }
                   if (b_sendEmail) { 
                      res = SendMail("VWAP TRADE ALERT","Algo sold "+m_names[i]+" "+DoubleToStr(Period(),0)); 
