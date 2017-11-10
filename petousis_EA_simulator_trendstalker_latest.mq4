@@ -29,7 +29,7 @@
 #define NAMESNUMBERMAX 50                 // this is the max number of names currently - it can be set higher if needed
 
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//input switches
+//input switches & constants
 extern bool b_noNewSequence = false;
 input string s_inputFileName = "TF_DEMO_H1_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
@@ -50,13 +50,13 @@ input int const bollinger_mode = 1;		// 1:MODE_UPPER 2:MODE_LOWER
 //bool filter_supersmoother = true;
 double const f_creditPenalty = 10.0;
 double const f_creditPenaltyThreshold = 10.0;
+int const slippage =10;           // in points
+int const timeFrame=Period();    
+string const symb =Symbol();
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int const slippage =10;           // in points
-int const timeFrame=Period();        
 int count = 0,i_namesNumber=0;
 bool Work = true;             //EA will work
-string const symb =Symbol();
 int m_myMagicNumber[NAMESNUMBERMAX];  // Magic Numbers
 double m_lots[NAMESNUMBERMAX];
 double m_accountCcyFactors[NAMESNUMBERMAX];
@@ -69,7 +69,6 @@ double m_profitInUSD[];
 int m_lotDigits[];
 double m_lotMin[];
 int m_ticket[];
-double temp_sequence[6];
 double m_bandsTSAvg[];
 int i_credit = -1;
 double f_creditAmount = 0.0;
@@ -82,6 +81,7 @@ int OnInit()
   {
    int const i_bandsHistory = 1000;
    double f_overlap,f_low1,f_low2,f_high1,f_high2,f_scale,f_barSizeTSAvg = 0.0;
+   double temp_sequence[6];
    
    // TIMER FREQUENCY - APPARENTLY NO SERVER CONTACT FOR MORE THAN 30SEC WILL CAUSE REAUTHENTICATION ADDING CONSIDERABLE DELAY, SO THEREFORE USE 15SEC INTERVAL
    if (timeFrame == 1) { EventSetTimer(10); }
@@ -271,6 +271,7 @@ void OnTimer() //void OnTick()
    int m_positionDirection[];
    int m_lastTicketOpenTime[];
    double m_fastFilter[];
+   double temp_sequence[6];
    string s_comment,s_orderSymbol,s_adjFlag="";
    
 // PRELIMINARY PROCESSING ///////////////////////////////////////////////////////////////////////////////////////////////////////////
