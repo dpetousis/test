@@ -388,11 +388,14 @@ if (slowfilter_productMagicNumber>0) {
 f_creditBalance = GlobalVariableGet("gv_creditBalance");
 // CAN ONLY APPLY CREDIT TO ONE PAIR AT A TIME. ONLY AFTER IT HAS BEEN APPLIED, WE CAN APPLY ANOTHER ONE
 if ((int)MathFloor(GlobalVariableGet("gv_creditProductMagicNumber")/100) == i_stratMagicNumber) {			// only enter loop if there is new amount to be credited for this strategy
-	i_credit = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
-	f_creditAmount = GlobalVariableGet("gv_creditAmount");
-	GlobalVariableSet("gv_creditProductMagicNumber",-1);
-	GlobalVariableSet("gv_creditBalance",f_creditBalance+GlobalVariableGet("gv_creditAmount"));
-	GlobalVariableSet("gv_creditAmount",0);
+	if (i_credit<0) {
+		i_credit = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
+		f_creditAmount = GlobalVariableGet("gv_creditAmount");
+		GlobalVariableSet("gv_creditProductMagicNumber",-1);
+		GlobalVariableSet("gv_creditBalance",f_creditBalance+GlobalVariableGet("gv_creditAmount"));
+		GlobalVariableSet("gv_creditAmount",0);
+	}
+	else { Alert("Previous credit request has not yet been applied"); }
 }
 
 // Make sure rest of ontimer() does not run continuously when not needed
