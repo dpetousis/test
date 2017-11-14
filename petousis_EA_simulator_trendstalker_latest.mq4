@@ -388,14 +388,10 @@ if (slowfilter_productMagicNumber>0) {
 f_creditBalance = GlobalVariableGet("gv_creditBalance");
 // CAN ONLY APPLY CREDIT TO ONE PAIR AT A TIME. ONLY AFTER IT HAS BEEN APPLIED, WE CAN APPLY ANOTHER ONE
 if ((int)MathFloor(GlobalVariableGet("gv_creditProductMagicNumber")/100) == i_stratMagicNumber) {			// only enter loop if there is new amount to be credited for this strategy
-	if (i_credit[0]<0) {
-		i_credit = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1;
-		f_creditAmount = GlobalVariableGet("gv_creditAmount");
-		GlobalVariableSet("gv_creditProductMagicNumber",-1);
-		GlobalVariableSet("gv_creditBalance",f_creditBalance+GlobalVariableGet("gv_creditAmount"));
-		GlobalVariableSet("gv_creditAmount",0);
-	}
-	else { Alert("Previous credit request has not yet been applied"); }
+	i_credit = (int)GlobalVariableGet("gv_creditProductMagicNumber") - i_stratMagicNumber*100 - 1; //only local variable now
+	m_creditAmount[i_credit] = m_creditAmount[i_credit] + GlobalVariableGet("gv_creditAmount");
+	GlobalVariableSet("gv_creditProductMagicNumber",-1);
+	GlobalVariableSet("gv_creditAmount",0);
 }
 
 // Make sure rest of ontimer() does not run continuously when not needed
@@ -529,8 +525,8 @@ if (b_lockIn) {
                if (-m_sequence[i][1]<f_creditPenaltyThreshold && f_creditBalance>0) { // apply penalty
                   f_loss = -m_sequence[i][1] + f_creditPenalty; 
 		  b_appliedPenalty = true; } 
-	       else if (i==i_credit && f_creditAmount>0) {		// or apply credit
-	       		f_loss = -m_sequence[i][1] - f_creditAmount; 
+	       else if (m_creditAmount[i]>0) {		// or apply credit
+	       		f_loss = -m_sequence[i][1] - m_creditAmount[i]; 
 			b_appliedCredit = true; }
                else { 
 	       	  f_loss = -m_sequence[i][1]; 
@@ -567,10 +563,10 @@ if (b_lockIn) {
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
 		  m_ticket[i] = ticket;
 		  if (b_appliedCredit) {
-		  	f_creditBalance = f_creditBalance + f_creditAmount; 
+		  	f_creditBalance = f_creditBalance + m_creditAmount[i]; 
 		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
-			f_creditAmount = 0;	// reset credit amount
-			i_credit = -1;		// reset index
+			m_creditAmount[i] = 0;	// reset credit amount
+			//i_credit = -1;		// reset index
 			m_sequence[i][1] = -f_loss; 
 		  }
 		  if (b_appliedPenalty) {
@@ -603,8 +599,8 @@ if (b_lockIn) {
                if (-m_sequence[i][1]<f_creditPenaltyThreshold && f_creditBalance>0) { // apply penalty
                   f_loss = -m_sequence[i][1] + f_creditPenalty; 
 		  b_appliedPenalty = true; } 
-	       else if (i==i_credit && f_creditAmount>0) {		// or apply credit
-	       		f_loss = -m_sequence[i][1] - f_creditAmount; 
+	       else if (m_creditAmount[i]>0) {		// or apply credit
+	       		f_loss = -m_sequence[i][1] - m_creditAmount[i]; 
 			b_appliedCredit = true; }
                else { 
 	       	  f_loss = -m_sequence[i][1]; 
@@ -641,10 +637,10 @@ if (b_lockIn) {
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
    				  m_ticket[i] = ticket;
 		if (b_appliedCredit) {
-		  	f_creditBalance = f_creditBalance + f_creditAmount; 
+		  	f_creditBalance = f_creditBalance + m_creditAmount[i]; 
 		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
-			f_creditAmount = 0;	// reset credit amount
-			i_credit = -1;		// reset index
+			m_creditAmount[i] = 0;	// reset credit amount
+			//i_credit = -1;		// reset index
 			m_sequence[i][1] = -f_loss; 
 		  }
 		  if (b_appliedPenalty) {
