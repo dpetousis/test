@@ -194,8 +194,10 @@ int OnInit()
    }
    
    // Setting the Global variables
-   GlobalVariableSet("gv_productMagicNumber",-1);
+   GlobalVariableSet("gv_SFproductMagicNumber",-1);
    GlobalVariableSet("gv_slowFilter",-1);
+   GlobalVariableSet("gv_FFproductMagicNumber",-1);
+   GlobalVariableSet("gv_fastFilter",-1);
    GlobalVariableSet("gv_creditProductMagicNumber",-1);
    GlobalVariableSet("gv_creditAmount",0.0);
    if (GlobalVariableCheck("gv_creditBalance")) { f_creditBalance = GlobalVariableGet("gv_creditBalance"); }
@@ -356,17 +358,22 @@ for(int i=0; i<i_namesNumber; i++) {
 }
 
 // SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
+// For current sequence or session only, whichever comes first //
 if (slowfilter_productMagicNumber>0) {
 	int temp_i = slowfilter_productMagicNumber - i_stratMagicNumber*100 - 1;
 	if (slowfilter_value<0) {	
 		// if slow filter not provided, set to open order price
 		res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
-		if (res) { m_sequence[temp_i][0] = NormalizeDouble(OrderOpenPrice(),(int)MarketInfo(m_names[temp_i],MODE_DIGITS)); 
-			   Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]);
+		if (res) { 
+			if (OrderCloseTime()>0) { m_sequence[temp_i][0] = -1; }
+			else {
+				m_sequence[temp_i][0] = NormalizeDouble(OrderOpenPrice(),(int)MarketInfo(m_names[temp_i],MODE_DIGITS)); 
+			}
+			Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]);
 		}
 		else { Alert("Slow filter change failed for product ",m_names[temp_i]); }
-		// if slow filter not provided, set to last fast filter value
 		/**
+		// if slow filter not provided, set to last fast filter value
 		if (m_positionDirection[temp_i]<0) {
 			m_sequence[temp_i][0] = NormalizeDouble(iCustom(m_names[temp_i],0,"petousis_supersmoother",m_filter[temp_i][1],filter_history,1,1) + MarketInfo(m_names[temp_i],MODE_POINT),(int)MarketInfo(m_names[temp_i],MODE_DIGITS));
 			Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]); }
@@ -382,6 +389,20 @@ if (slowfilter_productMagicNumber>0) {
 	// resetting
    	GlobalVariableSet("gv_productMagicNumber",-1);
    	GlobalVariableSet("gv_slowFilter",-1);
+}
+
+// SETTING EXTERNALLY THE FAST FILTER VALUE USING GLOBAL VARIABLES - FOR CURRENT SESSION ONLY /////////////////////////////////////
+// For current session only //
+if (fastfilter_productMagicNumber>0) {
+	int temp_i = slowfilter_productMagicNumber - i_stratMagicNumber*100 - 1;
+	if (fastfilter_value>0) {  
+		m_filter[1][temp_i] = fastfilter_value;
+		Alert("The fast filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]);
+	}
+	else { Alert("The fast filter value is outside expected range); }
+	// resetting
+   	GlobalVariableSet("gv_FFproductMagicNumber",-1);
+   	GlobalVariableSet("gv_fastFilter",-1);
 }
 
 // GIVING CREDIT TO STRUGGLING SEQUENCE BY PENALISING OTHERS
