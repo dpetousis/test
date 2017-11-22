@@ -202,6 +202,7 @@ int OnInit()
    GlobalVariableSet("gv_creditAmount",0.0);
    if (GlobalVariableCheck("gv_creditBalance")) { f_creditBalance = GlobalVariableGet("gv_creditBalance"); }
    else { GlobalVariableSet("gv_creditBalance",0.0); }
+   GlobalVariableSet("gv_MOproductMagicNumber",-1);
    
    Alert ("Function init() triggered at start for ",symb);// Alert
    if (IsDemo() == false) { Alert("THIS IS NOT A DEMO RUN"); }
@@ -414,6 +415,29 @@ if ((int)MathFloor(GlobalVariableGet("gv_creditProductMagicNumber")/100) == i_st
 	GlobalVariableSet("gv_creditProductMagicNumber",-1);
 	GlobalVariableSet("gv_creditAmount",0);
 }
+
+// IF PENDING ORDER STALLED, OPEN WITH MARKET ORDER - PENDING NEEDS TO BE CLOSED MANUALLY IF NOT CLOSED BY EA
+if ((int)MathFloor(GlobalVariableGet("gv_MOProductMagicNumber")/100) == i_stratMagicNumber) {			// only enter loop if 
+	int mo_i = (int)GlobalVariableGet("gv_MOProductMagicNumber") - i_stratMagicNumber*100 - 1; //only local variable now
+	int res1 = OrderSelect(m_ticket[mo_i],SELECT_BY_TICKET);
+	if (res) {
+	  string mo_name = OrderSymbol();
+	  int mo_orderType = OrderType(); 
+	  string mo_price;
+	  int mo_stalledTicket = m_ticket[mo_i];
+	  if (mo_orderType = OP_BUYLIMIT) { mo_price = MarketInfo(mo_name,MODE_ASK); }		// if BUY use ASK
+	  elseif (mo_orderType = OP_SELLLIMIT) { mo_price = MarketInfo(mo_name,MODE_BID); }
+	  m_ticket[mo_i]=OrderSend(mo_name,mo_orderType,OrderLots(),mo_price,10,OrderStopLoss(),OrderTakeProfit(),OrderComment(),OrderMagicNumber()); //Opening 
+	  if (m_ticket[mo_i]<0) { Alert("Stalled ticket selected but market order cannot be placed."); }
+	  else { 
+	  	int res2 = OrderDelete(mo_stalledTicket); 
+		if (res2=false) { Alert("Market Order placed but stalled order cannot be deleted."); }
+	  }
+	}
+	else { Alert("Stalled ticket: ", ticket, " cannot be selected."); }
+	GlobalVariableSet("gv_MOProductMagicNumber",-1);	// reset
+}
+
 
 // Make sure rest of ontimer() does not run continuously when not needed
    if ((Minute()>55 || Minute()<15) || b_pending) {   
