@@ -418,26 +418,9 @@ if ((int)MathFloor(GlobalVariableGet("gv_creditProductMagicNumber")/100) == i_st
 
 // IF PENDING ORDER STALLED, OPEN WITH MARKET ORDER - PENDING NEEDS TO BE CLOSED MANUALLY IF NOT CLOSED BY EA
 if ((int)MathFloor(GlobalVariableGet("gv_MOProductMagicNumber")/100) == i_stratMagicNumber) {			// only enter loop if 
-	int mo_i = (int)GlobalVariableGet("gv_MOProductMagicNumber") - i_stratMagicNumber*100 - 1; //only local variable now
-	int mo_res1 = OrderSelect(m_ticket[mo_i],SELECT_BY_TICKET);
-	if (mo_res1) {
-	  string mo_name = OrderSymbol();
-	  int mo_orderType = OrderType(); 
-	  string mo_price;
-	  int mo_stalledTicket = m_ticket[mo_i];
-	  if (mo_orderType = OP_BUYLIMIT) { mo_price = MarketInfo(mo_name,MODE_ASK); }		// if BUY use ASK
-	  elseif (mo_orderType = OP_SELLLIMIT) { mo_price = MarketInfo(mo_name,MODE_BID); }
-	  m_ticket[mo_i]=OrderSend(mo_name,mo_orderType,OrderLots(),mo_price,10,OrderStopLoss(),OrderTakeProfit(),OrderComment(),OrderMagicNumber()); //Opening 
-	  if (m_ticket[mo_i]<0) { Alert("Stalled ticket selected but market order cannot be placed."); }
-	  else { 
-	  	int mo_res2 = OrderDelete(mo_stalledTicket); 
-		if (mo_res2==false) { Alert("Market Order placed but stalled order cannot be deleted."); }
-	  }
-	}
-	else { Alert("Stalled ticket: ", ticket, " cannot be selected."); }
+	replaceOrder((int)GlobalVariableGet("gv_MOProductMagicNumber") - i_stratMagicNumber*100 - 1); 
 	GlobalVariableSet("gv_MOProductMagicNumber",-1);	// reset
 }
-
 
 // Make sure rest of ontimer() does not run continuously when not needed
    if ((Minute()>55 || Minute()<15) || b_pending) {   
@@ -813,6 +796,29 @@ if (b_lockIn) {
        else  { return false; }
 }
   
+int replaceOrder(int mo_i)
+{
+	int mo_i,mo_orderType,mo_stalledTicket;
+	bool mo_res1,mo_res2;
+	string mo_name;
+	double mo_price;
+	mo_res1 = OrderSelect(m_ticket[mo_i],SELECT_BY_TICKET);
+	if (mo_res1) {
+	  mo_name = OrderSymbol();
+	  mo_orderType = OrderType(); 
+	  mo_stalledTicket = m_ticket[mo_i];
+	  if (mo_orderType = OP_BUYLIMIT) { mo_price = MarketInfo(mo_name,MODE_ASK); }		// if BUY use ASK
+	  elseif (mo_orderType = OP_SELLLIMIT) { mo_price = MarketInfo(mo_name,MODE_BID); }
+	  m_ticket[mo_i]=OrderSend(mo_name,mo_orderType,OrderLots(),mo_price,10,OrderStopLoss(),OrderTakeProfit(),OrderComment(),OrderMagicNumber()); //Opening 
+	  if (m_ticket[mo_i]<0) { Alert("Stalled ticket selected but market order cannot be placed."); }
+	  else { 
+	  	mo_res2 = OrderDelete(mo_stalledTicket); 
+		if (mo_res2==false) { Alert("Market Order placed but stalled order cannot be deleted."); }
+	  }
+	}
+	else { Alert("Stalled ticket: ", ticket, " cannot be selected."); }
+	return 0;
+}
   
   double accCcyFactor(string symbol)
   {
