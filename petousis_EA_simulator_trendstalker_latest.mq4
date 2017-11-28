@@ -501,10 +501,10 @@ if (b_lockIn) {
       if (m_signal[i]<0 && m_positionDirection[i]==1) {
             RefreshRates();
             Alert("Attempt to close Buy ",m_ticket[i]); 
-			res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
-			if (m_isPositionPending[i]==true) {
-				res = OrderDelete(m_ticket[i]); }
-			else { res = OrderClose(m_ticket[i],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }         // slippage 100, so it always closes
+		res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
+		if (m_isPositionPending[i]==true) {
+			res = OrderDelete(m_ticket[i]); }
+		else { res = OrderClose(m_ticket[i],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }         // slippage 100, so it always closes
             if (res==true) {
                Alert("Order Buy closed."); 
                break;
@@ -541,6 +541,7 @@ if (b_lockIn) {
    	if (m_isPositionPending[i]==true) {     // if pending order exists -> modify pending order
        		if (m_positionDirection[i]==1) { res = OrderModify(m_ticket[i],ASK,SL,TP,0); }
 		else if (m_positionDirection[i]==-1) { res = OrderModify(m_ticket[i],BID,SL,TP,0); }
+		else { res=false; }
        		if (res) { Print("Order modified successfully:",m_names[i]); }
        		else { Alert(m_names[i],": Order modification failed with error #", GetLastError()); }
     	}
