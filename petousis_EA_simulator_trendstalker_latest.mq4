@@ -538,6 +538,12 @@ if (b_lockIn) {
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
+   	if (m_isPositionPending[i]==true) {     // if pending order exists -> modify pending order
+       		if (m_positionDirection[i]==1) { res = OrderModify(m_ticket[i],ASK,SL,TP,0); }
+		else if (m_positionDirection[i]==-1) { res = OrderModify(m_ticket[i],BID,SL,TP,0); }
+       		if (res) { Print("Order modified successfully:",m_names[i]); }
+       		else { Alert(m_names[i],": Order modification failed with error #", GetLastError()); }
+    	}
       if (((m_signal[i]>0) || (m_signal[i]<0)) && !(b_noNewSequence && m_sequence[i][0]<0))   // Send order when receive buy or sell signal 
         {
          // Open Buy
@@ -608,11 +614,6 @@ if (b_lockIn) {
                   }
                }
             }
-            else if (m_isPositionPending[i]==true && m_positionDirection[i]==1) {     // if pending order exists -> modify pending order
-               res = OrderModify(m_ticket[i],ASK,SL,TP,0);
-               if (res) { Print("Order modified successfully:",m_names[i]); }
-               else { Alert(m_names[i],": Order modification failed with error #", GetLastError()); }
-            }
             else { Alert("ERROR - ",m_names[i]," System is sending a buy signal, but it is neither opening nor modifying."); }
            }
            // Open Sell
@@ -682,11 +683,6 @@ if (b_lockIn) {
                   }
                }
             }
-            else if (m_isPositionPending[i]==true && m_positionDirection[i]==-1) {
-               res = OrderModify(m_ticket[i],BID,SL,TP,0);
-               if (res) { Print("Order modified successfully:",m_names[i]); }
-               else { Alert(m_names[i],": Order modification failed with error #", GetLastError()); }
-               }
             else { Alert("ERROR - ",m_names[i]," System is sending a sell signal, but it is neither opening nor modifying."); }
            }                                
         }
