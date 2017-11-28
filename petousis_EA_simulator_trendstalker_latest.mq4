@@ -539,8 +539,19 @@ if (b_lockIn) {
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
    	if (m_isPositionPending[i]==true) {     // if pending order exists -> modify pending order
-       		if (m_positionDirection[i]==1) { res = OrderModify(m_ticket[i],ASK,SL,TP,0); }
-		else if (m_positionDirection[i]==-1) { res = OrderModify(m_ticket[i],BID,SL,TP,0); }
+       		RefreshRates(); 
+		if (m_positionDirection[i]==1) { 
+			ASK = MarketInfo(m_names[i],MODE_ASK);
+			SL=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
+            		TP=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
+			res = OrderModify(m_ticket[i],ASK,SL,TP,0); 
+		}
+		else if (m_positionDirection[i]==-1) { 
+			BID = MarketInfo(m_names[i],MODE_BID);
+            		SL=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
+            		TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
+			res = OrderModify(m_ticket[i],BID,SL,TP,0); 
+		}
 		else { res=false; }
        		if (res) { Print("Order modified successfully:",m_names[i]); }
        		else { Alert(m_names[i],": Order modification failed with error #", GetLastError()); }
