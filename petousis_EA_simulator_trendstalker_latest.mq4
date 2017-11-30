@@ -538,7 +538,7 @@ if (b_lockIn) {
  // OPENING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
    for(int i=0; i<i_namesNumber; i++) {
    if (m_tradeFlag[i]==true) {
-   	if (m_isPositionPending[i]==true) {     // if pending order exists -> modify pending order
+   	if (m_isPositionPending[i]==true && m_signal[i]==0) {     // if pending order exists -> modify pending order
        		RefreshRates(); 
 		if (m_positionDirection[i]==1) { 
 			ASK = MarketInfo(m_names[i],MODE_ASK);
