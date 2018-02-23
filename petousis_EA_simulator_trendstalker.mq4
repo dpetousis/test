@@ -383,7 +383,10 @@ if ((int)MathFloor(GlobalVariableGet("gv_SFproductMagicNumber")/100)==i_stratMag
 			   }
 			   Alert("The slow filter for product ",m_names[temp_i]," was changed to ",m_sequence[temp_i][0]);
 		}
-		else { Alert("Slow filter change failed for product ",m_names[temp_i]); }
+		else { 
+		      Alert("Cannot find trade because it is probably already closed so resetting slow filter to -1 for product ",m_names[temp_i]); 
+		      m_sequence[temp_i][0] = -1;
+		}
 		// if slow filter not provided, set to last fast filter value
 		/**
 		if (m_positionDirection[temp_i]<0) {
