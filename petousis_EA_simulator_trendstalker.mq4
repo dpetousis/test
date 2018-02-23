@@ -587,8 +587,8 @@ if (b_lockIn) {
                if (-m_sequence[i][1]<f_creditPenaltyThreshold && f_creditBalance>0) { // apply penalty
                   f_loss = -m_sequence[i][1] + f_creditPenalty; 
 		  b_appliedPenalty = true; } 
-	       else if (-m_sequence[i][1]>= 3* && m_creditAmount[i]<0.001) { // apply credit automatically
-                  f_loss = -m_sequence[i][1] - m_creditAmount[i];
+	       else if (MathFloor(-m_sequence[i][1]/m_profitInUSD[i])>=3 && m_creditAmount[i]<0.00001) { // apply credit automatically
+                  f_loss = -m_sequence[i][1] - (MathFloor(-m_sequence[i][1]/m_profitInUSD[i])-1)*m_profitInUSD[i];
 		  b_appliedCredit = true; } 
 	       else if (m_creditAmount[i]>0) {		// or apply credit
    	       	  f_loss = -m_sequence[i][1] - m_creditAmount[i]; 
@@ -658,6 +658,9 @@ if (b_lockIn) {
                if (-m_sequence[i][1]<f_creditPenaltyThreshold && f_creditBalance>0) { // apply penalty
                   f_loss = -m_sequence[i][1] + f_creditPenalty; 
 		            b_appliedPenalty = true; } 
+		else if (MathFloor(-m_sequence[i][1]/m_profitInUSD[i])>=3 && m_creditAmount[i]<0.00001) { // apply credit automatically
+                  f_loss = -m_sequence[i][1] - (MathFloor(-m_sequence[i][1]/m_profitInUSD[i])-1)*m_profitInUSD[i];
+		  b_appliedCredit = true; } 
    	         else if (m_creditAmount[i]>0) {		// or apply credit
    	       		f_loss = -m_sequence[i][1] - m_creditAmount[i]; 
    			      b_appliedCredit = true; }
