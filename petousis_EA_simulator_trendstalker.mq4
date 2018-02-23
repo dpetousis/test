@@ -586,10 +586,13 @@ if (b_lockIn) {
                // LOTS
                if (-m_sequence[i][1]<f_creditPenaltyThreshold && f_creditBalance>0) { // apply penalty
                   f_loss = -m_sequence[i][1] + f_creditPenalty; 
-		            b_appliedPenalty = true; } 
-	            else if (m_creditAmount[i]>0) {		// or apply credit
-   	       		f_loss = -m_sequence[i][1] - m_creditAmount[i]; 
-   			      b_appliedCredit = true; }
+		  b_appliedPenalty = true; } 
+	       else if (-m_sequence[i][1]>= 3* && m_creditAmount[i]<0.001) { // apply credit automatically
+                  f_loss = -m_sequence[i][1] - m_creditAmount[i];
+		  b_appliedCredit = true; } 
+	       else if (m_creditAmount[i]>0) {		// or apply credit
+   	       	  f_loss = -m_sequence[i][1] - m_creditAmount[i]; 
+   		  b_appliedCredit = true; }
                else { 
 	       	      f_loss = -m_sequence[i][1]; 
          		  b_appliedCredit = false;
