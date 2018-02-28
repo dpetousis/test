@@ -81,7 +81,8 @@ int OnInit()
   {
    int const i_bandsHistory = 3000;
    double f_overlap,f_low1,f_low2,f_high1,f_high2,f_scale,f_barSizeTSAvg = 0.0;
-   double temp_sequence[6];
+   double temp_sequence[7];
+   int temp_ticket[2];
    string s_namesRemoved = "", s_namesOpen = "";
    
    // TIMER FREQUENCY - APPARENTLY NO SERVER CONTACT FOR MORE THAN 30SEC WILL CAUSE REAUTHENTICATION ADDING CONSIDERABLE DELAY, SO THEREFORE USE 15SEC INTERVAL
@@ -159,7 +160,7 @@ int OnInit()
       
       // initialize m_sequence  
       m_sequence[i][0] = -1.0;      //Initialize to -1,0,0      
-      if (isPositionOpen(m_myMagicNumber[i],m_names[i])) {                                                       // check if trade open
+      if (isPositionOpen(m_myMagicNumber[i],m_names[i],temp_ticket)) {                                                       // check if trade open
 		 m_ticket[i][0] = OrderTicket();
 		 if (readTradeComment(m_ticket[i][0],m_names[i],temp_sequence)) {
 			for (int j=0;j<3;j++) {
@@ -763,6 +764,8 @@ if (b_lockIn) {
   {
    bool out = false;
    int local_counter = 0;
+   output[0]=0;
+   output[1]=0;
    for(int i=0; i<OrdersTotal(); i++)
      {
       if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol && (OrderType()==OP_BUY || OrderType()==OP_SELL) )
