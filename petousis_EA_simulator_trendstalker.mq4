@@ -759,16 +759,21 @@ if (b_lockIn) {
   // FUNCTIONS  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   
-  bool isPositionOpen(int myMagicNumber, string symbol)
+  bool isPositionOpen(int myMagicNumber, string symbol, int &output[])
   {
+   bool out = false;
+   int local_counter = 0;
    for(int i=0; i<OrdersTotal(); i++)
      {
       if(OrderSelect(i,SELECT_BY_POS,MODE_TRADES) && OrderMagicNumber()==myMagicNumber && OrderSymbol()==symbol && (OrderType()==OP_BUY || OrderType()==OP_SELL) )
         {
-         return true;
+	 if (local_counter>=2) { Alert("ERROR: More than 2 trades detected with the same magic number: ",myMagicNumber); }
+         else { output[local_counter] = OrderTicket(); }
+	 local_counter = local_counter + 1;
+	 out = true;
         }
      }
-   return false;
+   return out;
   }
   
   int getName(string s1, string s2)          // gives index
