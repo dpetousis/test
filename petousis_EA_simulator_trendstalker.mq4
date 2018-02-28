@@ -809,6 +809,8 @@ if (b_lockIn) {
        if(OrderSelect(ticket,SELECT_BY_TICKET)) {
           temp = StringSplit(OrderComment(),u_sep,result);
           if (ArraySize(result)<4) { PrintFormat("Comment format is wrong for ",symbol); return false; }
+	  temp = StringFind(result[0],"M");
+	  if (temp<0) { output[6] = -1; } else { output[6] = 1; } // 1 is positive test for mirror trade
           temp = StringFind(result[1],"A");
           if (temp<0) {
             output[0] = StrToDouble(result[1]); } //vwap
