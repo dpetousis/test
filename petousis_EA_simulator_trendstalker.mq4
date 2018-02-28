@@ -68,9 +68,10 @@ double m_filter[][2];      // vwap,filter freq
 double m_profitInUSD[];
 int m_lotDigits[];
 double m_lotMin[];
-int m_ticket[];
+int m_ticket[][2];
 double m_bandsTSAvg[];
 double m_creditAmount[];
+bool m_mirrorTradeFlag[];
 double f_creditBalance = 0.0;
 
 //+------------------------------------------------------------------+
@@ -116,6 +117,7 @@ int OnInit()
    ArrayInitialize(m_ticket,0);
    ArrayInitialize(m_bandsTSAvg,0.0);
    ArrayInitialize(m_creditAmount,0.0);
+   ArrayInitialize(m_mirrorTradeFlag,false);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -132,6 +134,7 @@ int OnInit()
    ArrayResize(m_ticket,i_namesNumber,0);
    ArrayResize(m_bandsTSAvg,i_namesNumber,0);
    ArrayResize(m_creditAmount,i_namesNumber,0);
+   ArrayResize(m_mirrorTradeFlag,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
@@ -157,16 +160,16 @@ int OnInit()
       // initialize m_sequence  
       m_sequence[i][0] = -1.0;      //Initialize to -1,0,0      
       if (isPositionOpen(m_myMagicNumber[i],m_names[i])) {                                                       // check if trade open
-		 m_ticket[i] = OrderTicket();
-		 if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+		 m_ticket[i][0] = OrderTicket();
+		 if (readTradeComment(m_ticket[i][0],m_names[i],temp_sequence)) {
 			for (int j=0;j<3;j++) {
 			   //THIS PROCESS WILL OVERWRITE ANY EXTERNALLY MODIFIED SLOW FILTERS - THEY WILL NEED TO BE RESET EXTERNALLY AGAIN
 			   m_sequence[i][j] = temp_sequence[j];
 			}
-			Alert("ticket:",m_ticket[i]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]);
+			Alert("ticket:",m_ticket[i][0]," ",m_names[i]," ",m_sequence[i][0]," ",m_sequence[i][1]," ",m_sequence[i][2]);
 			StringAdd(s_namesOpen,m_names[i]);
          StringAdd(s_namesOpen,"_");
-			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathAbs(OrderOpenPrice()-OrderStopLoss()),0); }
+			m_bollingerDeviationInPips[i] = NormalizeDouble((1/MarketInfo(m_names[i],MODE_POINT)) * MathMax(MathAbs(OrderOpenPrice()-OrderTakeProfit()),MathAbs(OrderOpenPrice()-OrderStopLoss())),0); }
 		 else { PrintFormat("Cannot read open trade comment %s",m_names[i]); }
       }
       
@@ -316,11 +319,11 @@ void OnTimer() //void OnTick()
 // UPDATE STATUS/////////////////////////////////////////////////////////////////////////////////////////////////////
 for(int i=0; i<i_namesNumber; i++) {
       if (m_tradeFlag[i]==true) {
-      		if (m_ticket[i]>0) {
-			res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
+      		if (m_ticket[i][0]>0) {
+			res = OrderSelect(m_ticket[i][0],SELECT_BY_TICKET);
 			if (res) {
 				if (OrderCloseTime()>0) {			// if closed
-					if (readTradeComment(m_ticket[i],m_names[i],temp_sequence)) {
+					if (readTradeComment(m_ticket[i][0],m_names[i],temp_sequence)) {
 						if (temp_sequence[1]+temp_sequence[5]>0) {	//ie trade sequence closed positive 
 							m_sequence[i][0] = -1;
 							m_sequence[i][1] = 0;
@@ -335,7 +338,7 @@ for(int i=0; i<i_namesNumber; i++) {
 						m_isPositionOpen[i]=false;
 						m_isPositionPending[i] = false;
 						m_positionDirection[i] = 0;
-						m_ticket[i] = 0;
+						m_ticket[i][0] = 0;
 					}
 				}
 				else {
@@ -364,7 +367,7 @@ for(int i=0; i<i_namesNumber; i++) {
 					}
 				}
 			}
-			else { Alert("Failed to select trade: ",m_ticket[i]); }
+			else { Alert("Failed to select trade: ",m_ticket[i][0]); }
 		}
       }
 }
@@ -375,7 +378,7 @@ if ((int)MathFloor(GlobalVariableGet("gv_SFproductMagicNumber")/100)==i_stratMag
 	int temp_i = (int)GlobalVariableGet("gv_SFproductMagicNumber") - i_stratMagicNumber*100 - 1;
 	if (GlobalVariableGet("gv_slowFilter")<0) {	
 		// if slow filter not provided, set to open order price
-		res = OrderSelect(m_ticket[temp_i],SELECT_BY_TICKET);
+		res = OrderSelect(m_ticket[temp_i][0],SELECT_BY_TICKET);
 		if (res) { 
 		      if (OrderCloseTime()>0) { m_sequence[temp_i][0] = -1; }
 		      else {
@@ -516,11 +519,11 @@ if (b_lockIn) {
  if (m_tradeFlag[i]==true) {
       if (m_signal[i]<0 && m_positionDirection[i]==1) {
             RefreshRates();
-            Alert("Attempt to close Buy ",m_ticket[i]); 
-			res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
+            Alert("Attempt to close Buy ",m_ticket[i][0]); 
+			res = OrderSelect(m_ticket[i][0],SELECT_BY_TICKET);
 			if (m_isPositionPending[i]==true) {
-				res = OrderDelete(m_ticket[i]); }
-			else { res = OrderClose(m_ticket[i],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }         // slippage 100, so it always closes
+				res = OrderDelete(m_ticket[i][0]); }
+			else { res = OrderClose(m_ticket[i][0],OrderLots(),MarketInfo(m_names[i],MODE_BID),100); }         // slippage 100, so it always closes
             if (res==true) {
                Alert("Order Buy closed."); 
                break;
@@ -533,11 +536,11 @@ if (b_lockIn) {
       if (m_signal[i]>0 && m_positionDirection[i]==-1) {
          if ( m_signal[i]>0 && m_positionDirection[i]==-1) {
             RefreshRates();
-            Alert("Attempt to close Sell ",m_ticket[i]); 
-			res = OrderSelect(m_ticket[i],SELECT_BY_TICKET);
+            Alert("Attempt to close Sell ",m_ticket[i][0]); 
+			res = OrderSelect(m_ticket[i][0],SELECT_BY_TICKET);
 			if (m_isPositionPending[i]==true) {
-				res = OrderDelete(m_ticket[i]); }
-			else { res = OrderClose(m_ticket[i],OrderLots(),MarketInfo(m_names[i],MODE_ASK),100); }
+				res = OrderDelete(m_ticket[i][0]); }
+			else { res = OrderClose(m_ticket[i][0],OrderLots(),MarketInfo(m_names[i],MODE_ASK),100); }
             if (res==true) {
                Alert("Order Sell closed. "); 
                break;
@@ -560,13 +563,13 @@ if (b_lockIn) {
       			ASK = MarketInfo(m_names[i],MODE_ASK);
       			SL=NormalizeDouble(ASK - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
                TP=NormalizeDouble(ASK + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-      			res = OrderModify(m_ticket[i],ASK,SL,TP,0); 
+      			res = OrderModify(m_ticket[i][0],ASK,SL,TP,0); 
       		}
       		else if (m_positionDirection[i]==-1) { 
       			BID = MarketInfo(m_names[i],MODE_BID);
          		SL=NormalizeDouble(BID + m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));     // Calculating SL of opened
          		TP=NormalizeDouble(BID - m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT),(int)MarketInfo(m_names[i],MODE_DIGITS));   // Calculating TP of opened
-      			res = OrderModify(m_ticket[i],BID,SL,TP,0); 
+      			res = OrderModify(m_ticket[i][0],BID,SL,TP,0); 
       		}
       		else { res=false; }
        		if (res) { Print("Order modified successfully:",m_names[i]); }
@@ -627,7 +630,7 @@ if (b_lockIn) {
                   m_sequence[i][0] = temp_vwap;
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Buy:",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
-         		  m_ticket[i] = ticket;
+         		  m_ticket[i][0] = ticket;
          		  if (b_appliedCredit) {
          		  	f_creditBalance = f_creditBalance + m_creditAmount[i]; 
          		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
@@ -699,7 +702,7 @@ if (b_lockIn) {
                   m_sequence[i][0] = temp_vwap;
                   m_sequence[i][2] = m_sequence[i][2] + 1;                          // increment trade number
                   Alert ("Opened pending order Sell ",ticket,",Symbol:",m_names[i]," Lots:",m_lots[i]);
-   				  m_ticket[i] = ticket;
+   				  m_ticket[i][0] = ticket;
             		if (b_appliedCredit) {
             		  	f_creditBalance = f_creditBalance + m_creditAmount[i]; 
             		  	GlobalVariableSet("gv_creditBalance",f_creditBalance);
