@@ -829,27 +829,27 @@ if (b_lockIn) {
        else  { return false; }
 }
   
-  int replaceOrder(int mo_i)
+  int replaceOrder(int ticket)
 {
 	int mo_orderType,mo_stalledTicket;
 	bool mo_res1,mo_res2;
 	string mo_name;
 	double mo_price=0;
-	mo_res1 = OrderSelect(m_ticket[mo_i],SELECT_BY_TICKET);
+	mo_res1 = OrderSelect(ticket,SELECT_BY_TICKET);
 	if (mo_res1) {
 	  mo_name = OrderSymbol();
 	  mo_orderType = OrderType(); 
-	  mo_stalledTicket = m_ticket[mo_i];
+	  mo_stalledTicket = ticket;
 	  if (mo_orderType == OP_BUYLIMIT) { mo_price = MarketInfo(mo_name,MODE_ASK); }		// if BUY use ASK
 	  else if (mo_orderType == OP_SELLLIMIT) { mo_price = MarketInfo(mo_name,MODE_BID); }
-	  m_ticket[mo_i]=OrderSend(mo_name,mo_orderType,OrderLots(),mo_price,10,OrderStopLoss(),OrderTakeProfit(),OrderComment(),OrderMagicNumber()); //Opening 
-	  if (m_ticket[mo_i]<0) { Alert("Stalled ticket selected but market order cannot be placed."); }
+	  ticket=OrderSend(mo_name,mo_orderType,OrderLots(),mo_price,10,OrderStopLoss(),OrderTakeProfit(),OrderComment(),OrderMagicNumber()); //Opening 
+	  if (ticket<0) { Alert("Stalled ticket selected but market order cannot be placed."); }
 	  else { 
 	  	mo_res2 = OrderDelete(mo_stalledTicket); 
 		if (mo_res2==false) { Alert("Market Order placed but stalled order cannot be deleted."); }
 	  }
 	}
-	else { Alert("Stalled ticket: ", mo_stalledTicket, " cannot be selected."); }
+	else { Alert("Stalled ticket: ", ticket, " cannot be selected."); }
 	return 0;
 }
   
