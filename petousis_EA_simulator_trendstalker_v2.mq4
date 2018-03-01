@@ -31,7 +31,7 @@
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches & constants
 extern bool b_noNewSequence = false;
-extern double f_percMirrorCover = 0.8;
+const double f_percMirrorCover = 0.8;
 input string s_inputFileName = "TF_REAL_H1_TRENDSTALKER.txt"; 
 bool b_lockIn = true;
 // Percentage of TP above which trade will always be a winning or breakeven
@@ -680,7 +680,7 @@ if (b_lockIn) {
          	    else {
          	    	m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
          	    }
-				if (m_mirrorTradeFlag[i]) { mirror_lots = NormalizeDouble(f_percMirrorCover * m_lots[i],m_lotDigits[i]); }
+				if (m_mirrorTradeFlag[i]) { mirror_lots = NormalizeDouble(m_percMirrorCover[i] * m_lots[i],m_lotDigits[i]); }
          	    // COMMENT
                if (m_sequence[i][0] < 0) { 
    	       		temp_vwap = m_fastFilter[i] - MarketInfo(m_names[i],MODE_POINT); 
@@ -771,7 +771,7 @@ if (b_lockIn) {
 					else {
 						m_lots[i] = NormalizeDouble(MathMax(m_lotMin[i], m_profitInUSD[i] / m_accountCcyFactors[i] / m_bollingerDeviationInPips[i]),m_lotDigits[i]);
 					}
-					if (m_mirrorTradeFlag[i]) { mirror_lots = NormalizeDouble(f_percMirrorCover * m_lots[i],m_lotDigits[i]); }
+					if (m_mirrorTradeFlag[i]) { mirror_lots = NormalizeDouble(m_percMirrorCover[i] * m_lots[i],m_lotDigits[i]); }
 					// COMMENT
 					if (m_sequence[i][0] < 0) { 
 					temp_vwap = m_fastFilter[i] + MarketInfo(m_names[i],MODE_POINT); 
