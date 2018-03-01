@@ -226,6 +226,7 @@ int OnInit()
    
    // Setting the Global variables
    GlobalVariableSet("gv_mirrorProductMagicNumber",-1);
+   GlobalVariableSet("gv_mirrorCoverPerc",-1);
    GlobalVariableSet("gv_SFproductMagicNumber",-1);
    GlobalVariableSet("gv_slowFilter",-1);
    GlobalVariableSet("gv_FFproductMagicNumber",-1);
@@ -427,11 +428,13 @@ for(int i=0; i<i_namesNumber; i++) {
 // for current session only //
 if ((int)MathFloor(GlobalVariableGet("gv_mirrorProductMagicNumber")/100)==i_stratMagicNumber) {
 	int temp_i = (int)GlobalVariableGet("gv_mirrorProductMagicNumber") - i_stratMagicNumber*100 - 1;
+	if (GlobalVariableGet("gv_mirrorCoverPerc")>0) { m_percMirrorCover[temp_i] = GlobalVariableGet("gv_mirrorCoverPerc"); }
 	if (m_mirrorTradeFlag[temp_i] = true) { m_mirrorTradeFlag[temp_i] = false; }
 	else { m_mirrorTradeFlag[temp_i] = true; }
-	Alert("The mirror flag for product ",m_names[temp_i]," was changed to ",m_mirrorTradeFlag[temp_i]);
+	Alert("The mirror flag for product ",m_names[temp_i]," was changed to ",m_mirrorTradeFlag[temp_i],". The cover % is ",m_percMirrorCover[temp_i]);
 	// resetting
    	GlobalVariableSet("gv_mirrorProductMagicNumber",-1);
+	GlobalVariableSet("gv_mirrorCoverPerc",-1);
 }
 
 // SETTING EXTERNALLY THE SLOW FILTER VALUE USING GLOBAL VARIABLES /////////////////////////////////////
