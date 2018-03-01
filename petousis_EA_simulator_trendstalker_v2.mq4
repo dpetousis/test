@@ -73,6 +73,7 @@ int m_ticket[][2];
 double m_bandsTSAvg[];
 double m_creditAmount[];
 bool m_mirrorTradeFlag[];
+double m_percMirrorCover[];
 double f_creditBalance = 0.0;
 
 //+------------------------------------------------------------------+
@@ -120,6 +121,7 @@ int OnInit()
    ArrayInitialize(m_bandsTSAvg,0.0);
    ArrayInitialize(m_creditAmount,0.0);
    ArrayInitialize(m_mirrorTradeFlag,false);
+   ArrayInitialize(m_percMirrorCover,f_percMirrorCover);
    
    // Resize arrays once number of products known
    ArrayResize(m_names,i_namesNumber,0);
@@ -137,6 +139,7 @@ int OnInit()
    ArrayResize(m_bandsTSAvg,i_namesNumber,0);
    ArrayResize(m_creditAmount,i_namesNumber,0);
    ArrayResize(m_mirrorTradeFlag,i_namesNumber,0);
+   ArrayResize(m_percMirrorCover,i_namesNumber,0);
    for(int i=0; i<i_namesNumber; i++) {
       // m_names array
       temp = StringSplit(arr[i],u_sep,m_rows);
