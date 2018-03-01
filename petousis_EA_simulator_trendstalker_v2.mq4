@@ -394,13 +394,13 @@ for(int i=0; i<i_namesNumber; i++) {
 				else {
 					if (OrderType()==OP_BUY) { 
 						m_isPositionOpen[i]=true;
-						if (mirror_orderType>1) { m_isPositionPending[i] = true; } else { m_isPositionPending[i] = false; }
+						if (mirror_orderType>1) { m_isPositionPending[i] = true; b_pending = true; } else { m_isPositionPending[i] = false; }
 						m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,OrderOpenTime(),true);
 						m_positionDirection[i] = 1;	
 						i_openOrderNo = i_openOrderNo + 1; }
 					else if (OrderType()==OP_SELL) { 
 						m_isPositionOpen[i]=true;
-						if (mirror_orderType>1) { m_isPositionPending[i] = true; } else { m_isPositionPending[i] = false; }
+						if (mirror_orderType>1) { m_isPositionPending[i] = true; b_pending = true; } else { m_isPositionPending[i] = false; }
 						m_lastTicketOpenTime[i] = iBarShift(m_names[i],timeFrame,OrderOpenTime(),true);
 						m_positionDirection[i] = -1;	
 						i_openOrderNo = i_openOrderNo + 1; }
