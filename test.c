@@ -530,9 +530,13 @@ if ((int)GlobalVariableGet("gv_createSnapshotForStrategy") == i_stratMagicNumber
 	         // signal only fires if no open trade or opposite open trade, if no ticket was opened this bar
             if (m_fastFilter[i]>f_bollingerBand) { // && m_positionDirection[i][0]<1 && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i][0]) {
                if (b_trendstalker) { m_signal[i] = 1; } else { m_signal[i] = -1; }
+		if (m_sequence[i][0] < 0) { m_slowFilter[i] = m_fastFilter[i] - MarketInfo(m_names[i],MODE_POINT); }
+		else { m_slowFilter[i] = m_sequence[i][0]; }
             }
 	         else if (m_fastFilter[i]<f_bollingerBand) { // && m_positionDirection[i][0]>-1 && iBars(m_names[i],timeFrame)>m_lastTicketOpenTime[i][0]) {
                if (b_trendstalker) { m_signal[i] = -1; } else { m_signal[i] = 1; }
+		if (m_sequence[i][0] < 0) { m_slowFilter[i] = m_fastFilter[i] + MarketInfo(m_names[i],MODE_POINT); }
+		else { m_slowFilter[i] = m_sequence[i][0]; }
             }
             else {
                m_signal[i] = 0;
