@@ -22,7 +22,7 @@ enum INPUTFILENAME {
 
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches & program constants
-extern bool b_noNewSequence = false;
+extern bool b_newSequenceNotAllowed = false;
 input INPUTFILENAME inputFilenameIndex = TF_REAL_H1; 
 input double const bollinger_deviations = 4;
 input BOLLINGERMODE bollinger_mode = UPPER;
@@ -58,6 +58,7 @@ string const m_commentTradeFlag[TRADESPERNAMEMAX] = {"A","B"};
 double m_bollingerDeviationInPips[];   // [average upper band] - [average lower band]
 bool m_tradeFlag[];
 double m_filter[][3];      // vwap,filter freq
+double m_nonTradingWindows[][4];		// CANNOT START NEW SEQUENCE IN WINDOW, 0: window1 start 1:window1 end 2: window2 start 3: window2 end, DEFAULT(new sequence always allowed): 0,0,0,0
 double m_profitInAccCcy[];
 int m_lotDigits[];
 double m_lotMin[];
@@ -112,6 +113,7 @@ int OnInit()
    ArrayResize(m_bollingerDeviationInPips,i_namesNumber,0);
    ArrayResize(m_tradeFlag,i_namesNumber,0);
    ArrayResize(m_filter,i_namesNumber,0);
+   ArrayResize(m_nonTradingWindows,i_namesNumber,0);
    ArrayResize(m_profitInAccCcy,i_namesNumber,0);
    ArrayResize(m_lotDigits,i_namesNumber,0);
    ArrayResize(m_lotMin,i_namesNumber,0);
@@ -129,6 +131,7 @@ int OnInit()
    ArrayInitialize(m_bollingerDeviationInPips,0);
    ArrayInitialize(m_tradeFlag,false);
    ArrayInitialize(m_filter,0.0);
+   ArrayInitialize(m_nonTradingWindows,0.0);
    ArrayInitialize(m_profitInAccCcy,0.0);
    ArrayInitialize(m_lotDigits,0.0);
    ArrayInitialize(m_lotMin,0.0);
@@ -183,6 +186,10 @@ int OnInit()
          m_filter[i][0] = StringToDouble(m_rows[3]);
          m_filter[i][1] = StringToDouble(m_rows[4]);   
          m_filter[i][2] = StringToDouble(m_rows[5]);
+		 m_nonTradingWindows[i][0] = StringToDouble(m_rows[6]);
+		 m_nonTradingWindows[i][1] = StringToDouble(m_rows[7]);
+		 m_nonTradingWindows[i][2] = StringToDouble(m_rows[8]);
+		 m_nonTradingWindows[i][3] = StringToDouble(m_rows[9]);
       }
       else { PrintFormat("Failed to read row number %d, Number of elements read = %d instead of %d",i,temp,ArraySize(m_rows)); }
       // magic numbers
@@ -347,6 +354,7 @@ void OnTimer()
    int m_lastTicketOpenTime[][TRADESPERNAMEMAX];
    bool m_close[][TRADESPERNAMEMAX];
    int m_open[][TRADESPERNAMEMAX];
+   bool m_newSequenceNotAllowed[];
    bool m_appliedCreditFlag[],m_appliedPenaltyFlag[];
    double m_loss[];
    double m_slowFilter[];
@@ -376,6 +384,7 @@ void OnTimer()
    ArrayResize(m_fastFilterFreq,i_namesNumber,0);
    ArrayResize(m_close,i_namesNumber,0);
    ArrayResize(m_open,i_namesNumber,0);
+   ArrayResize(m_newSequenceNotAllowed,i_namesNumber,0);
    ArrayResize(m_appliedCreditFlag,i_namesNumber,0);
    ArrayResize(m_appliedPenaltyFlag,i_namesNumber,0);
    ArrayResize(m_loss,i_namesNumber,0);
@@ -389,6 +398,7 @@ void OnTimer()
    ArrayInitialize(m_fastFilterFreq,0);
    ArrayInitialize(m_close,false);
    ArrayInitialize(m_open,0);
+   ArrayInitialize(m_newSequenceNotAllowed,false);
    ArrayInitialize(m_appliedCreditFlag,false);
    ArrayInitialize(m_appliedPenaltyFlag,false);
    ArrayInitialize(m_loss,0);
@@ -672,6 +682,9 @@ if ((int)MathFloor(GlobalVariableGet("gv_newSequenceForProduct")/100)==i_stratMa
                   // Use fast filter to set slow filter level if 1) new sequence or 2) change larger than f_adjustLevel
                   m_slowFilter[i] = MathMin(f_bollingerBand,f_fastFilter+f_adjustLevel*m_bollingerDeviationInPips[i]*MarketInfo(m_names[i],MODE_POINT));
                }
+			   // confirm new sequence can be opened for product
+			   f_timeInHours = Hour() + Minute()/60;
+			   m_newSequenceNotAllowed[i] = ((f_timeInHours>m_nonTradingWindows[i][0])&&(f_timeInHours<m_nonTradingWindows[i][1])) || ((f_timeInHours>m_nonTradingWindows[i][2])&&(f_timeInHours<m_nonTradingWindows[i][3]));
             }
             else {
                if (f_fastFilter>f_bollingerBand+m_slowFilterGap[i]) { 
@@ -768,7 +781,7 @@ for(int i=0; i<i_namesNumber; i++) {
           		else { Alert(m_names[i],": Order modification failed with error #", GetLastError()); }
        	}
       }
-      if (!(b_noNewSequence && m_sequence[i][0]<0)) {  // Send order when no new sequence flag is off 
+      if (!(b_newSequenceNotAllowed && m_sequence[i][0]<0) && m_newSequenceNotAllowed[i]==false) {  // Send order when no new sequence flag is off 
          for(int k=0; k<m_tradesNumber[i]; k++) {
             
 			if (m_open[i][k]>0 || m_open[i][k]<0) {
