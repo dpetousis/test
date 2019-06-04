@@ -1,4 +1,4 @@
-﻿//﻿+------------------------------------------------------------------+
+//﻿+------------------------------------------------------------------+
 //|                        Copyright 2018, Dimitris Petousis         |
 //+------------------------------------------------------------------+
 #property strict
@@ -12,13 +12,14 @@ enum BOLLINGERMODE {
 
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches & program constants 
-double const bollinger_deviations = 4; //should be in input file
+double const bollinger_deviations = 5; //should be in input file
 input BOLLINGERMODE bollinger_mode = UPPER;
 double const f_percWarp = 0.25;
 input double const f_percTP = 0.35;
 int const bollinger_delay = 5; //should be in input file
 input double m_profitInAccCcy=1;
 double m_filter[4] ={30,7,15,15};      // bollinger freq,fast filter freq <2,fast filter freq, fast filter freq>£200
+input bool b_writeLogs = true;
 // statistics parameters
 bool const b_statistics = true;
 double const f_barSizePortion = 0.05;  // Gap = variable * (average bar size)
@@ -33,17 +34,17 @@ int const slippage =10;           // in points
 // Adjustments over loss level
 double const f_FFAdjustLevel = 50;	// absolute level of loss after which we adjust
 double const f_percTPAdjustLevel = 50;	// absolute level of loss after which we adjust TP
-double const f_percTPAdjust = 0.26;		// kicks in after the loss level above is reached
+double const f_percTPAdjust = 0.3;		// kicks in after the loss level above is reached
 double const f_bandsHistoryAdjustLevel = 50;   
 int const i_bandsHistoryAdjust = 5;  
-double const f_bandsHistoryAdjustMultiplier = 2.0; // bollinger deviation multiplier
-double const f_adjustSFLevel = 50;		// resets SF to -1
-int const f_adjustSFFreq = 4;			// reset SF every # trades in sequence
+double const f_bandsHistoryAdjustMultiplier = 1.0; // bollinger deviation multiplier
+double const f_adjustSFLevel = 100000;		// resets SF to -1
+int const f_adjustSFFreq = 100;			// reset SF every # trades in sequence
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const timeFrame=Period();    
 int i_ordersTotal = 0,i_openSequenceForProduct=-1;
-bool b_pendingGlobal=false,b_statsUpdated=false,b_slowFilterAdjusted=false;
+bool b_pendingGlobal=false,b_statsUpdated=false,b_slowFilterAdjusted=false, b_logCrossing=false, b_logSignal=false,b_logOpen=false,b_logUpdated=false;
 int m_myMagicNumber;  // Magic Numbers
 double m_accountCcyFactors;
 double m_sequence[7] = {-1.0,0.0,0.0,0,0,0,0.0};   // 0:SF,1:Losses excl current,2:#,3:warp,4:SL,5:TP,6:FF freq
@@ -68,6 +69,8 @@ int OnInit()
   {
    //double f_overlap,f_low1,f_low2,f_high1,f_high2,f_scale,f_barSizeTSAvg = 0.0;
    string s_symbolAppendix;
+   FileDelete("log.txt");
+   FileDelete("tradeLog.txt");
    
    m_sequence[3] = f_percWarp;
    m_sequence[4] = f_percSL;
@@ -189,10 +192,16 @@ if (!b_multiPositionOpen && i_ticketSum>0.5) {    // order is closed if no open 
 		m_slowFilterGap = 0.0;
 		m_bollingerDeviationInPips = 0;
 		b_slowFilterAdjusted = false;
+		if (b_writeLogs) writeTradeLog();
 	}
 	else {
 	   // dont copy over slow filter because it may have been modified externally
 	   m_sequence[1] = m_sequence[1] + temp_pnlSum;
+	   if (m_sequence[1]<-f_adjustSFLevel && !b_slowFilterAdjusted) {
+			m_sequence[0] = -1.0;
+			//else { m_sequence[0] = MathMin(m_sequence[0],f_fastFilter - 0.5 * m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT)); }
+			b_slowFilterAdjusted = true;
+	   }
 	}
 	m_ticket = 0; 
 	m_cumLosses = m_cumLosses + temp_pnl;
@@ -277,14 +286,14 @@ b_pendingGlobal = b_pending;
                   if (bollinger_mode==1) { m_signal = 2; } else { m_signal = 0; } 
                   //Alert(f_fastFilter,",",f_bollingerBand,",",f_fastFilterPrev,",",f_bollingerBandPrev,"signal=",m_signal);
                   // Use fast filter to set slow filter level if 1) new sequence or 2) change larger than f_adjustLevel
-                  m_sequence[0] = MathMax(f_bollingerBand,f_fastFilter-f_adjustLevel*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT));
+                  m_slowFilter = MathMax(f_bollingerBand,f_fastFilter-f_adjustLevel*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT));
                }
                else if (f_fastFilter<f_bollingerBand) { 
                   // when on free moving slow filter only enter buy on upper and sell on lower.
                   if (bollinger_mode==2) { m_signal = -2; } else { m_signal = 0; }
                   //Alert(f_fastFilter,",",f_bollingerBand,",",f_fastFilterPrev,",",f_bollingerBandPrev,"signal=",m_signal);
                   // Use fast filter to set slow filter level if 1) new sequence or 2) change larger than f_adjustLevel
-                  m_sequence[0] = MathMin(f_bollingerBand,f_fastFilter+f_adjustLevel*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT));
+                  m_slowFilter = MathMin(f_bollingerBand,f_fastFilter+f_adjustLevel*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT));
                }
                // confirm new sequence can be opened for product
 			      f_timeInHours = (double)Hour() + (double)Minute()/60;
@@ -298,21 +307,16 @@ b_pendingGlobal = b_pending;
                      statistics(m_bandsTSAvg,m_barTSAvg,i_bandsHistoryAdjust);
                      m_bollingerDeviationInPips = NormalizeDouble(f_bandsHistoryAdjustMultiplier*f_percAvBandSeparation*m_bandsTSAvg,0);
                }
-			   if (m_sequence[1]<-f_percTPAdjustLevel) {
-					m_sequence[5]	= f_percTPAdjust;
-			   }
+			      if (m_sequence[1]<-f_percTPAdjustLevel) {
+					   m_sequence[5]	= f_percTPAdjust;
+			      }
                if (f_fastFilter>f_bollingerBand+m_slowFilterGap) { 
                   m_signal = 2;
                   // Use fast filter to set slow filter level if 1) new sequence or 2) change larger than f_adjustLevel
                   if (MathAbs(m_sequence[0]-f_fastFilter)>f_adjustLevel*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT)) { 
-            			m_sequence[0] = f_fastFilter - MarketInfo(m_names,MODE_POINT); 
+            			m_slowFilter = f_fastFilter - MarketInfo(m_names,MODE_POINT); 
             		}
-					else if (m_sequence[1]<-f_adjustSFLevel && !b_slowFilterAdjusted) {
-						m_sequence[0] = -1.0;
-						//else { m_sequence[0] = MathMin(m_sequence[0],f_fastFilter - 0.5 * m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT)); }
-						b_slowFilterAdjusted = true;
-					}
-   		         //else { m_slowFilter = m_sequence[0]; }
+   		         else { m_slowFilter = m_sequence[0]; }
                }
                else if (f_fastFilter>f_bollingerBand-m_slowFilterGap && f_fastFilter<f_bollingerBand+m_slowFilterGap && f_fastFilterPrev<f_bollingerBand-m_slowFilterGap) {
                   m_signal = 1;
@@ -324,20 +328,22 @@ b_pendingGlobal = b_pending;
                   m_signal = -2;
                   // Use fast filter to set slow filter level if 1) new sequence or 2) change larger than f_adjustLevel
                   if (MathAbs(m_sequence[0]-f_fastFilter)>f_adjustLevel*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT)) { 
-            			m_sequence[0] = f_fastFilter + MarketInfo(m_names,MODE_POINT); 
+            			m_slowFilter = f_fastFilter + MarketInfo(m_names,MODE_POINT); 
             		}
-					else if (m_sequence[1]<-f_adjustSFLevel && !b_slowFilterAdjusted) {
-						m_sequence[0] = -1.0;
-						//else { m_sequence[0] = MathMax(m_sequence[0],f_fastFilter + 0.5*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT)); }
-						b_slowFilterAdjusted = true;
-					}
-   		         //else { m_slowFilter = m_sequence[0]; }
+   		         else { m_slowFilter = m_sequence[0]; }
                }
                else { m_signal = 0; }
                //Alert("signal(else)=",m_signal);
             }
 		   }
-        else { m_signal = 0; }
+        else { // no crossing this bar
+            m_signal = 0; 
+            // This is to deal with the situation where SL hits but the FF has not crossed the SF. Solution: move the SF
+            if (m_sequence[2]>0 && m_isPositionOpen==false && m_isPositionPending==false) { //open sequence but no trades open
+               if (f_fastFilter<f_bollingerBand-m_slowFilterGap) m_sequence[0] = f_fastFilter - MarketInfo(m_names,MODE_POINT);
+               else if (f_fastFilter>f_bollingerBand+m_slowFilterGap) m_sequence[0] = f_fastFilter + MarketInfo(m_names,MODE_POINT);
+            }
+        }
       
 // INTERPRET SIGNAL /////////////////////////////////////////////////////////////////////////////////////////////////////////
    if ( m_signal!=0) {
@@ -347,6 +353,24 @@ b_pendingGlobal = b_pending;
          else if (m_signal<-1 && m_positionDirection==0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_open=-1;  }
          else { }// do nothing
          //Alert("m_open=",m_open,"m_positionDirection=",m_positionDirection,"m_lastTicketOpenTime=",m_lastTicketOpenTime);
+}
+   
+// UPDATE LOG ////////////////////////////////////////////////////////////////////////////////////////////////
+if (false) { //b_writeLogs) {
+if (Hour()==0 && Minute()==1) {
+   if (b_logUpdated==false) {
+      writeLog(b_logCrossing,b_logSignal,b_logOpen);
+      b_logCrossing=false;
+      b_logSignal=false;
+      b_logOpen=false;
+      b_logUpdated=true;
+   }
+} else { 
+   if (temp_T[0] < 0 || temp_T[1] < 0) b_logCrossing = true;
+   if (m_signal<-0.5 || m_signal>0.5) b_logSignal = true;
+   if (m_open<0 || m_open>0) b_logOpen = true;
+   b_logUpdated=false;
+}
 }
    
 // CLOSING ORDERS //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -381,7 +405,7 @@ b_pendingGlobal = b_pending;
        		else { Alert(m_names,": Order modification failed with error #", GetLastError()); }
     	}
       // Send order when no new sequence flag is off and product is not out of hours
-      if (true) {   
+      if (!(m_sequence[1]<0.5 && Month()==12 && Day()>15)) {   
             
 			if (m_open>0 || m_open<0) {
 				// Loss per name
@@ -422,8 +446,8 @@ b_pendingGlobal = b_pending;
                Alert("Loss: ",-m_loss,". Factor: ",m_accountCcyFactors,". Pips: ",m_bollingerDeviationInPips,". SL: ",SL,". TP: ",TP);
             }
             else {				// Success :)
-               //if (m_open<0) { m_sequence[0] = MathCeil(m_slowFilter/MarketInfo(m_names,MODE_POINT))*MarketInfo(m_names,MODE_POINT); }
-               //else { m_sequence[0] = MathFloor(m_slowFilter/MarketInfo(m_names,MODE_POINT))*MarketInfo(m_names,MODE_POINT); }
+               if (m_open<0) { m_sequence[0] = MathCeil(m_slowFilter/MarketInfo(m_names,MODE_POINT))*MarketInfo(m_names,MODE_POINT); }
+               else { m_sequence[0] = MathFloor(m_slowFilter/MarketInfo(m_names,MODE_POINT))*MarketInfo(m_names,MODE_POINT); }
                m_sequence[2] = m_sequence[2] + 1;                       // increment trade number if it is the main trade                            // main
 			   if (MathMod(m_sequence[2],f_adjustSFFreq)<0.5) { b_slowFilterAdjusted = false; }	// adjust SF every "f_adjustSFFreq" trades
                Alert ("Opened pending order ",ticket,",Symbol:",m_names," Lots:",m_lots);
@@ -431,6 +455,7 @@ b_pendingGlobal = b_pending;
    			   m_lastTicketOpenTime = TimeCurrent(); 
       			m_sequence[1] = -m_loss; 
 			  }
+			  if (b_writeLogs) writeTradeLog();
          }
                                        
         }
@@ -471,8 +496,30 @@ b_pendingGlobal = b_pending;
    	   if (MathAbs(f_scale)>0.000001) { f_overlap = f_overlap + MathMax((MathMin(f_high1,f_high2)-MathMax(f_low1,f_low2))/f_scale,0.0); }
      }
      m_bandsTSAvgLocal = NormalizeDouble((1/MarketInfo(m_names,MODE_POINT)) * m_bandsTSAvgLocal / history, 0); // in pips
-     Alert(m_names," Average band in pips: ",m_bandsTSAvgLocal);
+     //Alert(m_names," Average band in pips: ",m_bandsTSAvgLocal);
      m_barTSAvgLocal = NormalizeDouble(f_barSizeTSAvg / history, (int)MarketInfo(m_names,MODE_DIGITS));
+  }
+  
+  void writeLog(bool b_crossing,bool b_signal,bool b_open)
+  {
+   int h=FileOpen("log.txt",FILE_WRITE|FILE_TXT|FILE_READ);
+   if (h!=INVALID_HANDLE) {
+      FileSeek(h,0,SEEK_END);
+      FileWrite(h,Year(),"-",Month(),"-",Day(),",",b_crossing,",",b_signal,",",b_open,",",m_sequence[0]);
+      FileClose(h); 
+   }
+   else { Alert("fileopen log.txt failed, error:",GetLastError()); }
+  }
+  
+  void writeTradeLog()
+  {
+   int h=FileOpen("tradeLog.txt",FILE_WRITE|FILE_TXT|FILE_READ);
+   if (h!=INVALID_HANDLE) {
+      FileSeek(h,0,SEEK_END);
+      FileWrite(h,Year(),"-",Month(),"-",Day(),",",m_sequence[2],",",m_sequence[0],",",m_sequence[1],",",m_sequence[3],",",m_sequence[4],",",m_sequence[5],",",m_sequence[6]);
+      FileClose(h); 
+   }
+   else { Alert("fileopen tradelog.txt failed, error:",GetLastError()); }
   }
 
   string getName(string s1, string s2)          // gives index
