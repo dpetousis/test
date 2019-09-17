@@ -1,4 +1,4 @@
-﻿//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
 //|                        Copyright 2018, Dimitris Petousis         |
 //+------------------------------------------------------------------+
 #property strict
@@ -12,13 +12,14 @@ enum BOLLINGERMODE {
 
 // INPUTS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //input switches & program constants 
+bool const algo_trend = true;	// false means mean reversion mode
 double const bollinger_deviations = 4; //should be in input file
 input BOLLINGERMODE bollinger_mode = UPPER;
 double const f_percWarp = 0.25;
-input double const f_percTP = 0.35;
+input double const f_percTP = 0.45;
 int const bollinger_delay = 5; //should be in input file
 input double m_profitInAccCcy=1;
-double m_filter[4] ={30,7,15,15};      // bollinger freq,fast filter freq <2,fast filter freq, fast filter freq>£200
+double m_filter[4] ={30,7,15,30};      // bollinger freq,fast filter freq <2,fast filter freq, fast filter freq>£200
 input bool b_writeLogs = true;
 // statistics parameters
 bool const b_statistics = true;
@@ -32,15 +33,15 @@ double const f_minBollingerBandRatio = 0;    // [min upper band] = [central band
 double const f_adjustLevel = 1; //0.1; with 1, it basically never adjusts
 int const slippage =10;           // in points
 // Adjustments over loss level
-double const f_FFAdjustLevel = 50000;	// absolute level of loss after which we adjust
-double const f_percTPAdjustLevel = 50000;	// absolute level of loss after which we adjust TP
-double const f_percTPAdjust = 0.3;		// kicks in after the loss level above is reached
-double const f_bandsHistoryAdjustLevel = 50000;   
-int const i_bandsHistoryAdjust = 5;  
-double const f_bandsHistoryAdjustMultiplier = 1.0; // bollinger deviation multiplier
-double const f_adjustSFLevel = 100000;		// resets SF to -1
-int const f_adjustSFFreq = 100;			// reset SF every # trades in sequence
-double f_creditThreshold = 50000;
+double const f_FFAdjustLevel = 500000;	// absolute level of loss after which we adjust FF
+double const f_percTPAdjustLevel = 100000;	// absolute level of loss after which we adjust TP
+double const f_percTPAdjust = 0.26;		// kicks in after the loss level above is reached
+double const f_bandsHistoryAdjustLevel = 500;   // if loss>f_bandsHistoryAdjustLevel recalc historical average bands with i_bandsHistoryAdjust history
+int const i_bandsHistoryAdjust = 5;             // and multiply SL/TP distance by f_bandsHistoryAdjustMultiplier.
+double const f_bandsHistoryAdjustMultiplier = 4.0; // bollinger deviation multiplier
+double const f_adjustSFLevel = 50;		// resets SF to -1 if loss>f_adjustSFLevel and then every f_adjustSFFreq trades in sequence
+int const f_adjustSFFreq = 3;			// reset SF every # trades in sequence
+double f_creditThreshold = 500000;
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const timeFrame=Period();    
@@ -62,7 +63,7 @@ double m_barTSAvg;
 double m_slowFilterGap=0.0;     // Gap = upper SF - SF = SF - lower SF
 //bool m_newSequenceNotAllowed;
 datetime m_lastTicketOpenTime=D'01.01.1999';
-int m_histLoss[6][2] = {10,20,50,100,200,1000,100000; 0,0,0,0,0,0,0 };
+int m_histLoss[9][2] = { {10,0},{20,0},{50,0},{100,0},{200,0},{1000,0},{5000,0},{10000,0},{100000,0} };
 int m_histTradesNumber[50];
 double f_credit=0;
 
@@ -191,8 +192,11 @@ if (m_ticket>0) {
    }
 if (!b_multiPositionOpen && i_ticketSum>0.5) {    // order is closed if no open positions but ticket numbers not yet reset
    temp_pnlSum = temp_pnlSum + temp_pnl;
-   if ((m_sequence[1]+temp_pnlSum)>=0.01) {	//ie trade sequence closed positive/negative by one cent or penny
-		m_histTradesNumber[(int)m_sequence[2]] = m_histTradesNumber[(int)m_sequence[2]] + 1;
+   bool b_sequenceClosed = false;
+   if (algo_trend) { b_sequenceClosed = (m_sequence[1]+temp_pnlSum)>=0.01; }
+   else { b_sequenceClosed = (m_sequence[1]+temp_pnlSum)<=-0.01; }
+   if (b_sequenceClosed) {	//ie trade sequence closed positive/negative by one cent or penny
+		m_histTradesNumber[(int)m_sequence[2]-1] = m_histTradesNumber[(int)m_sequence[2]-1] + 1;
 		updateHistLoss();
 		m_sequence[0] = -1;
 		for(int k=1; k<3; k++) { m_sequence[k] = 0; }
@@ -355,7 +359,7 @@ b_pendingGlobal = b_pending;
         else { // no crossing this bar
             m_signal = 0; 
             // This is to deal with the situation where SL hits but the FF has not crossed the SF. Solution: move the SF
-            if (m_sequence[2]>0 && m_isPositionOpen==false && m_isPositionPending==false) { //open sequence but no trades open
+            if (m_sequence[2]>0.5 && m_isPositionOpen==false && m_isPositionPending==false) { //open sequence but no trades open
                if (f_fastFilter<f_bollingerBand-m_slowFilterGap) m_sequence[0] = f_fastFilter - MarketInfo(m_names,MODE_POINT);
                else if (f_fastFilter>f_bollingerBand+m_slowFilterGap) m_sequence[0] = f_fastFilter + MarketInfo(m_names,MODE_POINT);
             }
@@ -363,12 +367,20 @@ b_pendingGlobal = b_pending;
       
 // INTERPRET SIGNAL /////////////////////////////////////////////////////////////////////////////////////////////////////////
    if ( m_signal!=0) {
+	   if (algo_trend) {
          if (m_signal>0 && m_positionDirection<0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_close=true; }
          else if (m_signal>1 && m_positionDirection==0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_open=1;  }
          else if (m_signal<0 && m_positionDirection>0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_close=true; }
          else if (m_signal<-1 && m_positionDirection==0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_open=-1;  }
          else { }// do nothing
-         //Alert("m_open=",m_open,"m_positionDirection=",m_positionDirection,"m_lastTicketOpenTime=",m_lastTicketOpenTime);
+	   }
+	   else {
+		   if (m_signal>0 && m_positionDirection>0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_close=true; }
+         else if (m_signal>1 && m_positionDirection==0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_open=-1;  }
+         else if (m_signal<0 && m_positionDirection<0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_close=true; }
+         else if (m_signal<-1 && m_positionDirection==0 && iBarShift(m_names,timeFrame,m_lastTicketOpenTime,false)!=0) { m_open=1;  }
+         else { }// do nothing
+	   }
 }
    
 // UPDATE LOG ////////////////////////////////////////////////////////////////////////////////////////////////
