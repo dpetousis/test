@@ -563,8 +563,39 @@ if (Hour()==0 && Minute()==1) {
   
   void writeStatsLog()
   {
-   int h=FileOpen("statsLog.txt",FILE_WRITE|FILE_TXT|FILE_READ);
+   string fname = StringConcatenate("statsLog_",TimeToString(TimeCurrent()),".txt");
+   int h=FileOpen(fname,FILE_WRITE|FILE_TXT|FILE_READ);
    if (h!=INVALID_HANDLE) {
+	   // summary
+	   FileSeek(h,0,SEEK_END);
+		FileWrite(h,"Algo trend flag=",algo_trend);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"Bollinger mode=",bollinger_mode);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_percWarp=",f_percWarp);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_percTP=",f_percTP);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_percSL=",f_percSL);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"m_profitInAccCcy=",m_profitInAccCcy);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"m_filter=",m_filter[0],",",m_filter[1],",",m_filter[2],",",m_filter[3]);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_minBollingerBandRatio=",f_minBollingerBandRatio);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_adjustLevel=",f_adjustLevel);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_FFAdjustLevel=",f_FFAdjustLevel);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_percTPAdjust=",f_percTPAdjustLevel,",",f_percTPAdjust);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_bandsHistoryAdjust=",f_bandsHistoryAdjustLevel,",",i_bandsHistoryAdjust,",",f_bandsHistoryAdjustMultiplier);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_adjustSFLevel=",f_adjustSFLevel,",",f_adjustSFFreq);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_creditThreshold=",f_creditThreshold);
+	   
 	   FileSeek(h,0,SEEK_END);
 		FileWrite(h,"Loss Histogram");
 	   for(int k=0; k<ArraySize(m_histLoss)/2; k++) { 
