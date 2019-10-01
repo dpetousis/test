@@ -1,4 +1,4 @@
-//+------------------------------------------------------------------+
+﻿//+------------------------------------------------------------------+
 //|                        Copyright 2018, Dimitris Petousis         |
 //+------------------------------------------------------------------+
 #property strict
@@ -14,34 +14,35 @@ enum BOLLINGERMODE {
 //input switches & program constants 
 bool const algo_trend = true;	// false means mean reversion mode
 double const bollinger_deviations = 4; //should be in input file
-input BOLLINGERMODE bollinger_mode = UPPER;
-double const f_percWarp = 0.25;
-input double const f_percTP = 0.45;
+BOLLINGERMODE bollinger_mode = LOWER;
+double const f_percWarp = 0.5; //trend: 0.3 reversion:0.7
+double const f_percTP = 0.7; //trend: 0.65 reversion:1
 int const bollinger_delay = 5; //should be in input file
-input double m_profitInAccCcy=1;
+double m_profitInAccCcy=1;
 double m_filter[4] ={30,7,15,30};      // bollinger freq,fast filter freq <2,fast filter freq, fast filter freq>£200
-input bool b_writeLogs = true;
+bool b_writeLogs = true;
 // statistics parameters
 bool const b_statistics = true;
 double const f_barSizePortion = 0.05;  // Gap = variable * (average bar size)
-input int const i_bandsHistory = 50;       // history for averaging (both bars and bands) - adjusts every new sequence
+int const i_bandsHistory = 50;       // history for averaging (both bars and bands) - adjusts every new sequence
 int const filter_history = 50;		// fast filter history
 // trading parameters
-double const f_percSL = 1;
+double const f_percSL = 0.7; //trend: 1 reversion:0.65
 double const f_percAvBandSeparation = 1;  // pips to SL (or TP) = variable * ([average upper band] - [average lower band])
 double const f_minBollingerBandRatio = 0;    // [min upper band] = [central band] + parameter * 0.5*([average upper band] - [average lower band]), ie 1 means the minimum is the average, 0 means the minimum is MAIN
 double const f_adjustLevel = 1; //0.1; with 1, it basically never adjusts
 int const slippage =10;           // in points
+double const f_maxLots = 100;
 // Adjustments over loss level
 double const f_FFAdjustLevel = 500000;	// absolute level of loss after which we adjust FF
 double const f_percTPAdjustLevel = 100000;	// absolute level of loss after which we adjust TP
-double const f_percTPAdjust = 0.26;		// kicks in after the loss level above is reached
-double const f_bandsHistoryAdjustLevel = 500;   // if loss>f_bandsHistoryAdjustLevel recalc historical average bands with i_bandsHistoryAdjust history
+double const f_percTPAdjust = 0.35;		// kicks in after the loss level above is reached
+double const f_bandsHistoryAdjustLevel = 500000;   // if loss>f_bandsHistoryAdjustLevel recalc historical average bands with i_bandsHistoryAdjust history
 int const i_bandsHistoryAdjust = 5;             // and multiply SL/TP distance by f_bandsHistoryAdjustMultiplier.
 double const f_bandsHistoryAdjustMultiplier = 4.0; // bollinger deviation multiplier
-double const f_adjustSFLevel = 50;		// resets SF to -1 if loss>f_adjustSFLevel and then every f_adjustSFFreq trades in sequence
-int const f_adjustSFFreq = 3;			// reset SF every # trades in sequence
-double f_creditThreshold = 500000;
+double const f_adjustSFLevel = 500000;		// resets SF to -1 if loss>f_adjustSFLevel and then every f_adjustSFFreq trades in sequence
+int const f_adjustSFFreq = 1000;			// reset SF every # trades in sequence
+double f_creditThreshold = 100000;
 
 // TRADE ACCOUNTING VARIABLES ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int const timeFrame=Period();    
@@ -63,8 +64,10 @@ double m_barTSAvg;
 double m_slowFilterGap=0.0;     // Gap = upper SF - SF = SF - lower SF
 //bool m_newSequenceNotAllowed;
 datetime m_lastTicketOpenTime=D'01.01.1999';
-int m_histLoss[9][2] = { {10,0},{20,0},{50,0},{100,0},{200,0},{1000,0},{5000,0},{10000,0},{100000,0} };
-int m_histTradesNumber[50];
+int m_histLoss[12][2] = { {1,0},{2,0},{5,0},{10,0},{20,0},{50,0},{100,0},{200,0},{1000,0},{5000,0},{10000,0},{100000,0} };
+int m_histTradesNumber[50];	// Frequency of sequence length 
+double m_lossStats[50][5]; // count, min cum loss, max cum loss, running mean cum loss, running squared mean cum loss
+double m_lossOptimised[50];
 double f_credit=0;
 
 //+------------------------------------------------------------------+
@@ -80,6 +83,8 @@ int OnInit()
    FileDelete("creditLog.txt");
    
    ArrayInitialize(m_histTradesNumber,0);
+   ArrayInitialize(m_lossStats,0);
+   ArrayInitialize(m_lossOptimised,0);
    
    m_sequence[3] = f_percWarp;
    m_sequence[4] = f_percSL;
@@ -90,7 +95,7 @@ int OnInit()
       m_lotDigits = (int)MathMax(-MathLog10(MarketInfo(m_names,MODE_LOTSTEP)),0);
       if (m_lotDigits<0) { Alert("Lot digits calculation is wrong for ",m_names); }
       m_lotMin = MarketInfo(m_names,MODE_MINLOT);
-      m_lotMax = MarketInfo(m_names,MODE_MAXLOT);
+      m_lotMax = MathMin(MarketInfo(m_names,MODE_MAXLOT),f_maxLots);
       
       // STATISTICS
       statistics(m_bandsTSAvg,m_barTSAvg,i_bandsHistory);
@@ -114,7 +119,9 @@ int OnInit()
 void OnDeinit(const int reason)
   {
 //---
-   if (b_writeLogs) writeStatsLog();
+   if (b_writeLogs) { 
+	writeStatsLog();
+   }
    Alert ("Function deinit() triggered at exit for ",Symbol());// Alert
    
    return;
@@ -159,7 +166,7 @@ if (m_ticket>0) {
 	   res = OrderSelect(m_ticket,SELECT_BY_TICKET);
 		if (res) {
 			if (OrderCloseTime()>0) {			// if closed
-				//b_tradeClosedBySL = (temp_sequence[6]>0.5) ? true : false;
+				//if (StringFind(OrderComment(),"[sl]")>0) { b_tradeClosedBySL = true; } else { b_tradeClosedBySL = false; }    // this is to know whether trade closed by SL or not
 				temp_pnl = OrderProfit() + OrderCommission() + OrderSwap();
 				m_isPositionOpen=false;
 				m_isPositionPending = false;
@@ -193,10 +200,12 @@ if (m_ticket>0) {
 if (!b_multiPositionOpen && i_ticketSum>0.5) {    // order is closed if no open positions but ticket numbers not yet reset
    temp_pnlSum = temp_pnlSum + temp_pnl;
    bool b_sequenceClosed = false;
-   if (algo_trend) { b_sequenceClosed = (m_sequence[1]+temp_pnlSum)>=0.01; }
-   else { b_sequenceClosed = (m_sequence[1]+temp_pnlSum)<=-0.01; }
+   if (algo_trend) { b_sequenceClosed = (MathAbs(OrderClosePrice()-OrderOpenPrice())>0.9*f_percTP*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT)); }
+   // (m_sequence[1]+temp_pnlSum)>=0.01;
+   else { b_sequenceClosed = (temp_pnlSum<0) && (MathAbs(OrderClosePrice()-OrderOpenPrice())>0.8*f_percSL*m_bollingerDeviationInPips*MarketInfo(m_names,MODE_POINT)); }
    if (b_sequenceClosed) {	//ie trade sequence closed positive/negative by one cent or penny
-		m_histTradesNumber[(int)m_sequence[2]-1] = m_histTradesNumber[(int)m_sequence[2]-1] + 1;
+		if ((int)m_sequence[2]>=49) { m_histTradesNumber[49] = m_histTradesNumber[49] + 1; }
+		else { m_histTradesNumber[(int)m_sequence[2]] = m_histTradesNumber[(int)m_sequence[2]] + 1; }
 		updateHistLoss();
 		m_sequence[0] = -1;
 		for(int k=1; k<3; k++) { m_sequence[k] = 0; }
@@ -212,6 +221,7 @@ if (!b_multiPositionOpen && i_ticketSum>0.5) {    // order is closed if no open 
 	else {
 	   // dont copy over slow filter because it may have been modified externally
 	   m_sequence[1] = m_sequence[1] + temp_pnlSum;
+	   updateLossStats();
 	   if (m_sequence[1]<-f_creditThreshold) {
 			f_credit = f_credit + (-m_sequence[1]);
 			if (b_writeLogs) writeCreditLog();
@@ -437,7 +447,11 @@ if (Hour()==0 && Minute()==1) {
             
 			if (m_open>0 || m_open<0) {
 				// Loss per name
+				if (MathMod(m_sequence[2],5)>3.5) {		// m_sequence[2] is the trade that was just closed, m_sequence[2]+1 is the trade that will open now
+					m_loss = m_lossOptimised[(int)m_sequence[2]-1];
+				} else {
 					m_loss = -m_sequence[1]; 
+				}
 				// Lots per trade
 				m_lots = MathMax(m_profitInAccCcy,MathAbs(m_loss)/m_sequence[3]) / m_accountCcyFactors / m_bollingerDeviationInPips;
 				m_lots = NormalizeDouble(MathMin(m_lotMax,MathMax(m_lotMin,m_lots)),m_lotDigits);  // floor and normalize
@@ -563,11 +577,10 @@ if (Hour()==0 && Minute()==1) {
   
   void writeStatsLog()
   {
-   string fname = StringConcatenate("statsLog_",TimeToString(TimeCurrent()),".txt");
-   int h=FileOpen(fname,FILE_WRITE|FILE_TXT|FILE_READ);
+   int h=FileOpen("statsLog.txt",FILE_WRITE|FILE_TXT|FILE_READ);
    if (h!=INVALID_HANDLE) {
-	   // summary
-	   FileSeek(h,0,SEEK_END);
+      
+      FileSeek(h,0,SEEK_END);
 		FileWrite(h,"Algo trend flag=",algo_trend);
 	   FileSeek(h,0,SEEK_END);
 	   FileWrite(h,"Bollinger mode=",bollinger_mode);
@@ -585,6 +598,8 @@ if (Hour()==0 && Minute()==1) {
 	   FileWrite(h,"f_minBollingerBandRatio=",f_minBollingerBandRatio);
 	   FileSeek(h,0,SEEK_END);
 	   FileWrite(h,"f_adjustLevel=",f_adjustLevel);
+	   FileSeek(h,0,SEEK_END);
+	   FileWrite(h,"f_maxLots=",f_maxLots);
 	   FileSeek(h,0,SEEK_END);
 	   FileWrite(h,"f_FFAdjustLevel=",f_FFAdjustLevel);
 	   FileSeek(h,0,SEEK_END);
@@ -611,6 +626,14 @@ if (Hour()==0 && Minute()==1) {
 	   FileSeek(h,0,SEEK_END);
 		FileWrite(h,"Credit used=",f_credit);
       FileClose(h); 
+	  
+	  double std = MathSqrt(m_lossStats[k][4]/m_lossStats[k][0]);
+	   FileSeek(h,0,SEEK_END);
+		FileWrite(h,"#Trade, count, min loss, max loss, mean, standard deviation");
+		for(int k=0; k<ArraySize(m_lossStats)/5; k++) { 
+			FileSeek(h,0,SEEK_END);
+			FileWrite(h,k+1,"->",(int)m_lossStats[k][0],",",NormalizeDouble(m_lossStats[k][1],2),",",NormalizeDouble(m_lossStats[k][2],2),",",NormalizeDouble(m_lossStats[k][3],2),",",NormalizeDouble(std,2));
+	   }
    }
    else { Alert("fileopen statsLog.txt failed, error:",GetLastError()); }
   }
@@ -618,11 +641,38 @@ if (Hour()==0 && Minute()==1) {
   void updateHistLoss()
   {
 	  for(int k=0; k<ArraySize(m_histLoss)/2; k++) { 
-		if (-m_sequence[1]<=m_histLoss[k][0]) {
-			m_histLoss[k][1] = m_histLoss[k][1] + 1;
-			break;
-		}
+	  if (algo_trend) {
+   		if (-m_sequence[1]<=m_histLoss[k][0]) {
+   			m_histLoss[k][1] = m_histLoss[k][1] + 1;
+   			break;
+   		}
+   	}
+   	else{
+   	   if (m_sequence[1]<=m_histLoss[k][0]) {
+   			m_histLoss[k][1] = m_histLoss[k][1] + 1;
+   			break;
+   		}
+   	}
 	  }
+  }
+  
+  void updateLossStats()
+  {
+	  int tradeIndex;
+	  double cumLoss = m_sequence[1];
+	  double runningMeanPrev = m_lossStats[tradeIndex][3];
+	  
+	  if ((int)m_sequence[2] >= 50) { tradeIndex = 49; }
+	  else { tradeIndex = (int)m_sequence[2]-1; }
+	  
+	  m_lossStats[tradeIndex][0] = m_lossStats[tradeIndex][0] + 1;	// update count
+	  if ( cumLoss < m_lossStats[tradeIndex][1] ) { m_lossStats[tradeIndex][1] = cumLoss; } // update min cum loss
+	  
+	  if ( MathAbs(m_lossStats[tradeIndex][2])<0.01 ) { m_lossStats[tradeIndex][2] = cumLoss; }
+	  else { if ( cumLoss > m_lossStats[tradeIndex][2] ) { m_lossStats[tradeIndex][2] = cumLoss; } }// update max cum loss
+	  
+	  m_lossStats[tradeIndex][3] = runningMeanPrev + ((cumLoss - runningMeanPrev)/m_lossStats[tradeIndex][0]);	// Welford's running mean
+	  m_lossStats[tradeIndex][4] = m_lossStats[tradeIndex][4] + (cumLoss - runningMeanPrev)*(cumLoss - m_lossStats[tradeIndex][3]);	// Welford's running square mean
   }
 
   string getName(string s1, string s2)          // gives index
@@ -737,3 +787,4 @@ if (Hour()==0 && Minute()==1) {
       
       return result;
 }
+
