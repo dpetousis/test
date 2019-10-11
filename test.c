@@ -90,6 +90,23 @@ int OnInit()
    m_sequence[4] = f_percSL;
    m_sequence[5] = f_percTP;
    m_sequence[6] = m_filter[1];
+	
+	
+	   int file_handle=FileOpen(path,FILE_READ|FILE_BIN);
+	   if(file_handle!=INVALID_HANDLE)
+	     {
+	      //--- read all data from the file to the array
+	      FileReadArray(file_handle,arr);
+	      //--- receive the array size
+	      //--- close the file
+	      FileClose(file_handle);
+	     }
+	   else
+	      Print("File open failed, error ",GetLastError());
+	  }
+
+
+
    
       // lot details
       m_lotDigits = (int)MathMax(-MathLog10(MarketInfo(m_names,MODE_LOTSTEP)),0);
@@ -636,6 +653,22 @@ if (Hour()==0 && Minute()==1) {
 	   }
    }
    else { Alert("fileopen statsLog.txt failed, error:",GetLastError()); }
+  }
+
+void WriteArray(const string path, double &arr)
+  {
+//--- open the file
+   int handle=FileOpen(path,FILE_READ|FILE_WRITE|FILE_BIN);
+   if(handle!=INVALID_HANDLE)
+     {
+      //--- write array data to the end of the file
+      FileSeek(handle,0,SEEK_END);
+      FileWriteArray(handle,arr,0,n);
+      //--- close the file
+      FileClose(handle);
+     }
+   else
+      Print("Failed to open the file, error ",GetLastError());
   }
   
   void updateHistLoss()
